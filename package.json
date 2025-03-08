@@ -1,0 +1,31 @@
+{
+  "name": "ptilms-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.20.3",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.13.0",
+    "uuid": "^11.1.0"
+  },
+  "overrides": {
+    "inflight": "^1.0.6",
+    "npmlog": "6.0.1",
+    "are-we-there-yet": "3.0.0",
+    "rimraf": "^4.0.0",
+    "glob": "^9.0.0",
+    "gauge": "5.0.1"
+  }
+}
