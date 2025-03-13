@@ -3,9 +3,15 @@ const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
+const { validationResult } = require('express-validator');
 require('dotenv').config();
 
 exports.registerUser = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   try {
     const { username, email, password, role, phone_number, date_of_birth, sex, profile_picture_url } = req.body;
     if (!username || !email || !password || !role) {
@@ -39,6 +45,11 @@ exports.registerUser = async (req, res) => {
 };
 
 exports.loginUser = (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   const { username, email, password } = req.body;
   if (!password || (!username && !email)) {
     return res.status(400).json({ message: "Please provide username (or email) and password" });
@@ -74,6 +85,11 @@ exports.loginUser = (req, res) => {
 };
 
 exports.forgotPassword = (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   const { email } = req.body;
   if (!email) return res.status(400).json({ message: "Email is required" });
   
@@ -94,6 +110,11 @@ exports.forgotPassword = (req, res) => {
 };
 
 exports.resetPassword = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   const { token, newPassword } = req.body;
   if (!token || !newPassword) return res.status(400).json({ message: "Token and newPassword are required" });
   
@@ -118,5 +139,30 @@ exports.resetPassword = async (req, res) => {
     } catch (error) {
       return res.status(500).json({ message: 'Error hashing password', error });
     }
+  });
+};
+
+exports.verifyResetToken = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { token } = req.body;
+  if (!token) {
+    return res.status(400).json({ message: 'Token is required' });
+  }
+
+  const query = 'SELECT * FROM users WHERE reset_token = ?';
+  db.query(query, [token], (error, results) => {
+    if (error) return res.status(500).json({ message: 'Database error', error });
+    if (results.length === 0) return res.status(404).json({ message: 'Invalid token' });
+
+    const user = results[0];
+    if (Date.now() > user.reset_token_expiry) {
+      return res.status(400).json({ message: 'Token expired' });
+    }
+
+    return res.json({ valid: true });
   });
 };

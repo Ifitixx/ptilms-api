@@ -5,7 +5,7 @@ const bcrypt = require('bcrypt');
 exports.getUserById = (req, res) => {
   const { userId } = req.params;
   const query = `
-    SELECT user_id, username, email, role, phone_number, date_of_birth, sex, profile_picture_url 
+    SELECT user_id, username, email, role, phone_number, date_of_birth, sex, profile_picture_url, modified_at
     FROM users 
     WHERE user_id = ?
   `;
@@ -57,5 +57,18 @@ exports.deleteUser = (req, res) => {
   db.query(query, [userId], (error, results) => {
     if (error) return res.status(500).json({ message: 'Database error', error });
     return res.json({ message: 'User deleted successfully' });
+  });
+};
+
+exports.getModifiedUsers = (req, res) => {
+  const { since } = req.query;
+  if (!since) {
+    return res.status(400).json({ message: 'Timestamp query parameter is required' });
+  }
+
+  const query = 'SELECT * FROM users WHERE modified_at >= ?';
+  db.query(query, [new Date(since)], (error, results) => {
+    if (error) return res.status(500).json({ message: 'Database error', error });
+    return res.json(results);
   });
 };

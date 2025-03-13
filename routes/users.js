@@ -1,5 +1,6 @@
 // routes/users.js
 const express = require('express');
+const { query } = require('express-validator');
 const router = express.Router();
 const userController = require('../controllers/userController');
 
@@ -14,5 +15,10 @@ router.put('/:userId/password', userController.changePassword);
 
 // DELETE /api/users/:userId - Delete user
 router.delete('/:userId', userController.deleteUser);
+
+// GET /api/users/modified - Get modified users since timestamp
+router.get('/modified', [
+  query('since').notEmpty().withMessage('Timestamp query parameter is required'),
+], userController.getModifiedUsers);
 
 module.exports = router;
