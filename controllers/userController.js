@@ -1,6 +1,8 @@
-// controllers/userController.js
+// userController.js
 const db = require('../config/db');
 const bcrypt = require('bcrypt');
+const { validationResult } = require('express-validator');
+const { parseISO, formatISO } = require('date-fns');
 
 exports.getUserById = (req, res) => {
   const { userId } = req.params;
@@ -12,19 +14,24 @@ exports.getUserById = (req, res) => {
   db.query(query, [userId], (error, results) => {
     if (error) return res.status(500).json({ message: 'Database error', error });
     if (results.length === 0) return res.status(404).json({ message: 'User not found' });
-    return res.json(results[0]);
+    const user = results[0];
+    if (user.date_of_birth) {
+      user.date_of_birth = formatISO(user.date_of_birth, { representation: 'date' });
+    }
+    return res.json(user);
   });
 };
 
 exports.updateUser = (req, res) => {
   const { userId } = req.params;
   const { username, email, phone_number, date_of_birth, sex, profile_picture_url } = req.body;
+  const parsedDateOfBirth = date_of_birth ? parseISO(date_of_birth) : null;
   const updateQuery = `
     UPDATE users 
     SET username = ?, email = ?, phone_number = ?, date_of_birth = ?, sex = ?, profile_picture_url = ? 
     WHERE user_id = ?
   `;
-  const values = [username, email, phone_number, date_of_birth, sex, profile_picture_url, userId];
+  const values = [username, email, phone_number, parsedDateOfBirth, sex, profile_picture_url, userId];
   
   db.query(updateQuery, values, (error, result) => {
     if (error) return res.status(500).json({ message: 'Database error', error });
@@ -47,7 +54,7 @@ exports.changePassword = async (req, res) => {
       return res.json({ message: 'Password updated successfully' });
     });
   } catch (error) {
-    return res.status(500).json({ message: "Error processing request", error });
+    return res.status(500).json({ message: 'Error hashing password', error });
   }
 };
 
@@ -65,9 +72,8 @@ exports.getModifiedUsers = (req, res) => {
   if (!since) {
     return res.status(400).json({ message: 'Timestamp query parameter is required' });
   }
-
   const query = 'SELECT * FROM users WHERE modified_at >= ?';
-  db.query(query, [new Date(since)], (error, results) => {
+  db.query(query, [since], (error, results) => {
     if (error) return res.status(500).json({ message: 'Database error', error });
     return res.json(results);
   });

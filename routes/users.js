@@ -1,6 +1,6 @@
 // routes/users.js
 const express = require('express');
-const { query } = require('express-validator');
+const { query, body } = require('express-validator');
 const router = express.Router();
 const userController = require('../controllers/userController');
 
@@ -8,7 +8,9 @@ const userController = require('../controllers/userController');
 router.get('/:userId', userController.getUserById);
 
 // PUT /api/users/:userId - Update user profile
-router.put('/:userId', userController.updateUser);
+router.put('/:userId', [
+  body('date_of_birth').optional().isISO8601().withMessage('Invalid date format for date_of_birth'),
+], userController.updateUser);
 
 // PUT /api/users/:userId/password - Change password
 router.put('/:userId/password', userController.changePassword);

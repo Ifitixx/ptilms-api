@@ -1,4 +1,3 @@
-// config/db.js
 const mysql = require('mysql2');
 require('dotenv').config();
 
@@ -33,7 +32,7 @@ CREATE TABLE IF NOT EXISTS users (
     date_of_birth DATE,
     sex VARCHAR(50),
     profile_picture_url VARCHAR(255),
-    modified_at BIGINT DEFAULT (UNIX_TIMESTAMP() * 1000),
+    modified_at BIGINT,
     sync_attempts INT DEFAULT 0
 );
 `;
@@ -46,7 +45,7 @@ connection.query(createUsersTableQuery, (err) => {
 // Add the "modified_at" column if it doesn't exist
 const addModifiedAtColumnQuery = `
 ALTER TABLE users 
-ADD COLUMN IF NOT EXISTS modified_at BIGINT DEFAULT (UNIX_TIMESTAMP() * 1000);
+ADD COLUMN IF NOT EXISTS modified_at BIGINT;
 `;
 
 connection.query(addModifiedAtColumnQuery, (err) => {
@@ -62,7 +61,7 @@ CREATE TRIGGER before_users_update
 BEFORE UPDATE ON users
 FOR EACH ROW
 BEGIN
-  SET NEW.modified_at = UNIX_TIMESTAMP() * 1000;
+  SET NEW.modified_at = UNIX_TIMESTAMP(NOW(3)) * 1000;
 END;
 
 //

@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { validationResult } = require('express-validator');
+const { parseISO } = require('date-fns');
 require('dotenv').config();
 
 exports.registerUser = async (req, res) => {
@@ -17,6 +18,7 @@ exports.registerUser = async (req, res) => {
     if (!username || !email || !password || !role) {
       return res.status(400).json({ message: "Missing required fields" });
     }
+    const parsedDateOfBirth = date_of_birth ? parseISO(date_of_birth) : null;
 
     const checkQuery = 'SELECT * FROM users WHERE username = ? OR email = ?';
     db.query(checkQuery, [username, email], async (error, results) => {
@@ -33,7 +35,7 @@ exports.registerUser = async (req, res) => {
         (user_id, username, email, password, role, phone_number, date_of_birth, sex, profile_picture_url)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
-      db.query(insertQuery, [userId, username, email, hashedPassword, role, phone_number, date_of_birth, sex, profile_picture_url],
+      db.query(insertQuery, [userId, username, email, hashedPassword, role, phone_number, parsedDateOfBirth, sex, profile_picture_url],
         (err, result) => {
           if (err) return res.status(500).json({ message: 'Error inserting user', err });
           return res.status(201).json({ message: 'User registered successfully', userId });
