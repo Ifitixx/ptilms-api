@@ -1,36 +1,25 @@
-// authController 
+// controllers/authController.js
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { v4: uuidv4 } = require('uuid');
-const db = require('../config/db');
 const logger = require('../utils/logger');
 const sanitizeHtml = require('sanitize-html');
-
-// In-memory token blacklist (for simplicity)
-const tokenBlacklist = new Set();
-
-// Helper function to add token to blacklist
-const blacklistToken = (token) => {
-  tokenBlacklist.add(token);
-};
-
-// Helper function to check if token is blacklisted
-const isTokenBlacklisted = (token) => {
-  return tokenBlacklist.has(token);
-};
+const tokenBlacklist = require('../utils/tokenBlacklist');
+const { ConflictError, UnauthorizedError, NotFoundError, BadRequestError } = require('../utils/errors');
+const User = require('../models/user'); // Import the User model
+const config = require('../config/config');
 
 // Helper function to generate tokens
 const generateTokens = (user) => {
   const accessToken = jwt.sign(
     { userId: user.user_id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: '15m' } // Short-lived access token
+    config.jwt.secret,
+    { expiresIn: config.jwt.expiresIn } // Short-lived access token
   );
 
   const refreshToken = jwt.sign(
     { userId: user.user_id, role: user.role },
-    process.env.JWT_REFRESH_SECRET,
-    { expiresIn: '7d' } // Longer-lived refresh token
+    config.jwt.refreshSecret,
+    { expiresIn: config.jwt.refreshExpiresIn } // Longer-lived refresh token
   );
 
   return { accessToken, refreshToken };
@@ -58,24 +47,31 @@ exports.registerUser = async (req, res, next) => {
     const sanitizedProfilePictureUrl = sanitizeInput(profile_picture_url);
 
     // Check if the username or email already exists
-    const [existingUsers] = await db.execute('SELECT * FROM users WHERE username = ? OR email = ?', [sanitizedUsername, sanitizedEmail]);
-    if (existingUsers.length > 0) {
-      return res.status(409).json({ message: 'Username or email already exists' });
+    const existingUser = await User.getUserByUsername(sanitizedUsername);
+    const existingEmail = await User.getUserByEmail(sanitizedEmail);
+    if (existingUser) {
+      throw new ConflictError('Username already exists');
+    }
+    if (existingEmail) {
+      throw new ConflictError('Email already exists');
     }
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create a new user
-    const userId = uuidv4();
-    const insertQuery = `
-      INSERT INTO users 
-      (user_id, username, email, password, role, phone_number, date_of_birth, sex, profile_picture_url)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-    await db.execute(insertQuery, [userId, sanitizedUsername, sanitizedEmail, hashedPassword, sanitizedRole, sanitizedPhoneNumber, date_of_birth, sanitizedSex, sanitizedProfilePictureUrl]);
+    const newUser = await User.createUser({
+      username: sanitizedUsername,
+      email: sanitizedEmail,
+      password: hashedPassword,
+      role: sanitizedRole,
+      phone_number: sanitizedPhoneNumber !== undefined ? sanitizedPhoneNumber : null, // Convert undefined to null
+      date_of_birth: date_of_birth !== undefined ? date_of_birth : null, // Convert undefined to null
+      sex: sanitizedSex !== undefined ? sanitizedSex : null, // Convert undefined to null
+      profile_picture_url: sanitizedProfilePictureUrl !== undefined ? sanitizedProfilePictureUrl : null, // Convert undefined to null
+    });
 
-    res.status(201).json({ message: 'User registered successfully' });
+    res.status(201).json({ message: 'User registered successfully', user: newUser });
   } catch (error) {
     logger.error(`Error registering user: ${error.message}`);
     next(error);
@@ -85,20 +81,18 @@ exports.registerUser = async (req, res, next) => {
 // Login an existing user
 exports.loginUser = async (req, res, next) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, password } = req.body;
 
-    // Find the user by username or email
-    const [users] = await db.execute('SELECT * FROM users WHERE username = ? OR email = ?', [username, email]);
-    if (users.length === 0) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    // Find the user by username
+    const user = await User.getUserByUsername(username);
+    if (!user) {
+      throw new UnauthorizedError('Invalid credentials');
     }
-
-    const user = users[0];
 
     // Check the password
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      throw new UnauthorizedError('Invalid credentials');
     }
 
     // Generate tokens
@@ -107,8 +101,9 @@ exports.loginUser = async (req, res, next) => {
     // Set the refresh token as an HTTP-only cookie
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      secure: process.env.NODE_ENV === 'production', // Use secure in production
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      secure: config.env === 'production',
+      sameSite: 'Strict',
     });
 
     res.status(200).json({ message: 'Login successful', accessToken });
@@ -124,18 +119,16 @@ exports.forgotPassword = async (req, res, next) => {
     const { email } = req.body;
 
     // Find the user by email
-    const [users] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
-    if (users.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
+    const user = await User.getUserByEmail(email);
+    if (!user) {
+      throw new NotFoundError('User not found');
     }
 
-    const user = users[0];
-
     // Generate a reset token
-    const resetToken = jwt.sign({ userId: user.user_id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const resetToken = jwt.sign({ userId: user.user_id }, config.jwt.secret, { expiresIn: '1h' });
 
     // Update the user's reset token in the database
-    await db.execute('UPDATE users SET reset_token = ? WHERE user_id = ?', [resetToken, user.user_id]);
+    await User.updateResetToken(user.user_id, resetToken);
 
     // Send the reset token to the user's email (implementation not included)
     logger.info(`Password reset token generated for user ${user.user_id}: ${resetToken}`);
@@ -153,21 +146,19 @@ exports.resetPassword = async (req, res, next) => {
     const { token, newPassword } = req.body;
 
     // Verify the reset token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwt.secret);
 
     // Find the user by user ID
-    const [users] = await db.execute('SELECT * FROM users WHERE user_id = ? AND reset_token = ?', [decoded.userId, token]);
-    if (users.length === 0) {
-      return res.status(400).json({ message: 'Invalid or expired reset token' });
+    const user = await User.getUserByResetToken(decoded.userId, token);
+    if (!user) {
+      throw new BadRequestError('Invalid or expired reset token');
     }
-
-    const user = users[0];
 
     // Hash the new password
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 
     // Update the user's password and clear the reset token
-    await db.execute('UPDATE users SET password = ?, reset_token = NULL WHERE user_id = ?', [hashedPassword, user.user_id]);
+    await User.updatePassword(user.user_id, hashedPassword);
 
     res.status(200).json({ message: 'Password reset successfully' });
   } catch (error) {
@@ -182,37 +173,38 @@ exports.refreshToken = async (req, res, next) => {
     const refreshToken = req.cookies.refreshToken;
 
     if (!refreshToken) {
-      return res.status(401).json({ message: 'No refresh token provided' });
+      throw new UnauthorizedError('No refresh token provided');
     }
 
     // Check if the token is blacklisted
-    if (isTokenBlacklisted(refreshToken)) {
-      return res.status(401).json({ message: 'Invalid refresh token' });
+    const isBlacklisted = await tokenBlacklist.isBlacklisted(refreshToken);
+    if (isBlacklisted) {
+      throw new UnauthorizedError('Invalid refresh token');
     }
 
     // Verify the refresh token
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    const decoded = jwt.verify(refreshToken, config.jwt.refreshSecret);
 
     // Find the user by user ID
-    const [users] = await db.execute('SELECT * FROM users WHERE user_id = ?', [decoded.userId]);
-    if (users.length === 0) {
-      return res.status(401).json({ message: 'Invalid refresh token' });
+    const user = await User.getUserById(decoded.userId);
+    if (!user) {
+      throw new UnauthorizedError('Invalid refresh token');
     }
-
-  
-    const user = users[0];
 
     // Generate new tokens
     const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
 
     // Blacklist the old refresh token
-    blacklistToken(refreshToken);
+    const decodedRefresh = jwt.decode(refreshToken);
+    const expiresAt = decodedRefresh.exp;
+    await tokenBlacklist.addToken(refreshToken, expiresAt);
 
     // Set the new refresh token as an HTTP-only cookie
     res.cookie('refreshToken', newRefreshToken, {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      secure: process.env.NODE_ENV === 'production', // Use secure in production
+      secure: config.env === 'production', // Use secure in production
+      sameSite: 'Strict',
     });
 
     res.status(200).json({ accessToken });
@@ -225,6 +217,10 @@ exports.refreshToken = async (req, res, next) => {
 
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({ message: 'Invalid refresh token' });
+    }
+
+    if (error instanceof UnauthorizedError) {
+      return res.status(401).json({ message: error.message });
     }
 
     next(error);

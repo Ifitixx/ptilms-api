@@ -4,6 +4,7 @@ const app = require('../server');
 const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
+const { TEST_USERNAME, TEST_EMAIL, TEST_PASSWORD, ADMIN_USERNAME, ADMIN_EMAIL, ADMIN_PASSWORD } = process.env;
 
 describe('User API', () => {
   let testUserId;
@@ -12,38 +13,60 @@ describe('User API', () => {
   let adminUserToken;
 
   beforeAll(async () => {
-    // Create a test user
-    const hashedPassword = await bcrypt.hash('testpassword', 10);
-    testUserId = uuidv4();
-    const insertQuery = `
-      INSERT INTO users 
-      (user_id, username, email, password, role)
-      VALUES (?, ?, ?, ?, ?)
-    `;
-    await db.execute(insertQuery, [testUserId, 'testuser', 'test@example.com', hashedPassword, 'user']);
+    try {
+      // Create a test user
+      const hashedPassword = await bcrypt.hash(TEST_PASSWORD, 10);
+      testUserId = uuidv4();
+      const insertQuery = `
+        INSERT INTO users
+        (user_id, username, email, password, role)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+      await db.execute(insertQuery, [
+        testUserId,
+        TEST_USERNAME,
+        TEST_EMAIL,
+        hashedPassword,
+        'user',
+      ]);
 
-    // Create an admin user
-    const adminHashedPassword = await bcrypt.hash('adminpassword', 10);
-    adminUserId = uuidv4();
-    await db.execute(insertQuery, [adminUserId, 'adminuser', 'admin@example.com', adminHashedPassword, 'admin']);
+      // Create an admin user
+      const adminHashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
+      adminUserId = uuidv4();
+      await db.execute(insertQuery, [
+        adminUserId,
+        ADMIN_USERNAME,
+        ADMIN_EMAIL,
+        adminHashedPassword,
+        'admin',
+      ]);
 
-    // Login the test user to get a token
-    const loginRes = await request(app)
-      .post('/api/auth/login')
-      .send({ username: 'testuser', password: 'testpassword' });
-    testUserToken = loginRes.body.accessToken;
+      // Login the test user to get a token
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .send({ username: TEST_USERNAME, password: TEST_PASSWORD });
+      testUserToken = loginRes.body.accessToken;
 
-    // Login the admin user to get a token
-    const adminLoginRes = await request(app)
-      .post('/api/auth/login')
-      .send({ username: 'adminuser', password: 'adminpassword' });
-    adminUserToken = adminLoginRes.body.accessToken;
+      // Login the admin user to get a token
+      const adminLoginRes = await request(app)
+        .post('/api/auth/login')
+        .send({ username: ADMIN_USERNAME, password: ADMIN_PASSWORD });
+      adminUserToken = adminLoginRes.body.accessToken;
+    } catch (error) {
+      console.error('Error in beforeAll:', error);
+      throw error;
+    }
   });
 
   afterAll(async () => {
-    // Clean up the test users
-    await db.execute('DELETE FROM users WHERE user_id IN (?, ?)', [testUserId, adminUserId]);
-    await db.end();
+    try {
+      // Clean up the test users
+      await db.execute('DELETE FROM users WHERE user_id IN (?, ?)', [testUserId, adminUserId]);
+      await db.end();
+    } catch (error) {
+      console.error('Error in afterAll:', error);
+      throw error;
+    }
   });
 
   it('should get user details by ID (user role)', async () => {
@@ -75,7 +98,7 @@ describe('User API', () => {
     const res = await request(app)
       .put(`/api/users/${testUserId}/change-password`)
       .set('Authorization', `Bearer ${testUserToken}`)
-      .send({ currentPassword: 'testpassword', newPassword: 'newpassword123' });
+      .send({ currentPassword: TEST_PASSWORD, newPassword: 'newpassword123' });
     expect(res.statusCode).toEqual(200);
     expect(res.body).toHaveProperty('message', 'Password changed successfully');
   });

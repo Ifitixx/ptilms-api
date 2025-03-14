@@ -1,9 +1,10 @@
-// userController.js
+// controllers/userController.js
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../config/db');
 const logger = require('../utils/logger');
 const sanitizeHtml = require('sanitize-html');
+const { NotFoundError, UnauthorizedError, BadRequestError } = require('../utils/errors');
 
 // Helper function to sanitize user input
 const sanitizeInput = (input) => {
@@ -21,7 +22,7 @@ exports.getUserById = async (req, res, next) => {
     // Find the user by user ID
     const [users] = await db.execute('SELECT user_id, username, email, role, phone_number, date_of_birth, sex, profile_picture_url FROM users WHERE user_id = ?', [userId]);
     if (users.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
+      throw new NotFoundError('User not found');
     }
 
     const user = users[0];
@@ -48,7 +49,7 @@ exports.updateUser = async (req, res, next) => {
     // Check if the user exists
     const [existingUsers] = await db.execute('SELECT * FROM users WHERE user_id = ?', [userId]);
     if (existingUsers.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
+      throw new NotFoundError('User not found');
     }
 
     // Update the user
@@ -75,7 +76,7 @@ exports.changePassword = async (req, res, next) => {
     // Find the user by user ID
     const [users] = await db.execute('SELECT * FROM users WHERE user_id = ?', [userId]);
     if (users.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
+      throw new NotFoundError('User not found');
     }
 
     const user = users[0];
@@ -83,7 +84,7 @@ exports.changePassword = async (req, res, next) => {
     // Check the current password
     const passwordMatch = await bcrypt.compare(currentPassword, user.password);
     if (!passwordMatch) {
-      return res.status(401).json({ message: 'Incorrect current password' });
+      throw new UnauthorizedError('Incorrect current password');
     }
 
     // Hash the new password
@@ -107,7 +108,7 @@ exports.deleteUser = async (req, res, next) => {
     // Check if the user exists
     const [existingUsers] = await db.execute('SELECT * FROM users WHERE user_id = ?', [userId]);
     if (existingUsers.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
+      throw new NotFoundError('User not found');
     }
 
     // Delete the user
@@ -123,11 +124,14 @@ exports.deleteUser = async (req, res, next) => {
 // Get modified users
 exports.getModifiedUsers = async (req, res, next) => {
   try {
-    const since = parseInt(req.query.since);
+    const since = req.query.since;
     const limit = parseInt(req.query.limit) || 10;
 
+    if (!since) {
+      throw new BadRequestError('The since parameter is required');
+    }
     // Get modified users since the given timestamp
-    const [modifiedUsers] = await db.execute('SELECT * FROM users WHERE modified_at > FROM_UNIXTIME(?) LIMIT ?', [since, limit]);
+    const [modifiedUsers] = await db.execute('SELECT * FROM users WHERE modified_at > ? LIMIT ?', [since, limit]);
 
     res.status(200).json(modifiedUsers);
   } catch (error) {

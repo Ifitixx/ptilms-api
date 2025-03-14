@@ -1,4 +1,4 @@
-// errorHndlers.js
+// middlewares/errorHandler.js
 const logger = require('../utils/logger');
 
 const errorHandler = (err, req, res, next) => {
@@ -23,6 +23,12 @@ const errorHandler = (err, req, res, next) => {
 
   if (err.name === 'ConflictError') {
     return res.status(409).json({ message: 'Conflict' });
+  }
+  if (err.name === 'TokenExpiredError') {
+    return res.status(401).json({ message: 'Token Expired' });
+  }
+  if (err.name === 'JsonWebTokenError') {
+    return res.status(401).json({ message: 'Invalid Token' });
   }
 
   res.status(500).json({ message: 'Internal server error' });

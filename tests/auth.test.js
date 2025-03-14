@@ -1,43 +1,71 @@
 // tests/auth.test.js
 const request = require('supertest');
-const app = require('../server'); // Assuming you export your app from server.js
+const app = require('../server');
 const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
-const logger = require('../utils/logger');
+const { TEST_USERNAME, TEST_EMAIL, TEST_PASSWORD } = process.env;
 
 describe('Authentication API', () => {
   let testUserId;
   let testUserToken;
   let testRefreshToken;
+  let newUser;
 
   beforeAll(async () => {
-    // Create a test user
-    const hashedPassword = await bcrypt.hash('testpassword', 10);
-    testUserId = uuidv4();
-    const insertQuery = `
-      INSERT INTO users 
-      (user_id, username, email, password, role)
-      VALUES (?, ?, ?, ?, ?)
-    `;
-    await db.execute(insertQuery, [testUserId, 'testuser', 'test@example.com', hashedPassword, 'user']);
+    try {
+      const hashedPassword = await bcrypt.hash(TEST_PASSWORD, 10);
+      testUserId = uuidv4();
+      const insertQuery = `
+        INSERT INTO users
+        (user_id, username, email, password, role)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+      await db.execute(insertQuery, [
+        testUserId,
+        TEST_USERNAME,
+        TEST_EMAIL,
+        hashedPassword,
+        'user',
+      ]);
+    } catch (error) {
+      console.error('Error in beforeAll:', error);
+      throw error;
+    }
   });
 
   afterAll(async () => {
-    // Clean up the test user
-    await db.execute('DELETE FROM users WHERE user_id = ?', [testUserId]);
-    await db.end();
+    try {
+      await db.execute('DELETE FROM users WHERE user_id = ?', [testUserId]);
+      await db.end();
+    } catch (error) {
+      console.error('Error in afterAll:', error);
+      throw error;
+    }
+  });
+
+  beforeEach(() => {
+    newUser = {
+      username: `newuser-${Date.now()}`,
+      email: `new-${Date.now()}@example.com`,
+      password: 'newpassword',
+      role: 'user',
+    };
+  });
+
+  afterEach(async () => {
+    try {
+      await db.execute('DELETE FROM users WHERE username = ?', [newUser.username]);
+    } catch (error) {
+      console.error('Error in afterEach:', error);
+      throw error;
+    }
   });
 
   it('should register a new user', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({
-        username: 'newuser',
-        email: 'new@example.com',
-        password: 'newpassword',
-        role: 'user',
-      });
+      .send(newUser);
     expect(res.statusCode).toEqual(201);
     expect(res.body).toHaveProperty('message', 'User registered successfully');
   });
@@ -46,14 +74,14 @@ describe('Authentication API', () => {
     const res = await request(app)
       .post('/api/auth/login')
       .send({
-        username: 'testuser',
-        password: 'testpassword',
+        username: TEST_USERNAME,
+        password: TEST_PASSWORD,
       });
     expect(res.statusCode).toEqual(200);
     expect(res.body).toHaveProperty('message', 'Login successful');
     expect(res.body).toHaveProperty('accessToken');
     testUserToken = res.body.accessToken;
-    // Extract the refresh token from the cookie
+    expect(res.headers['set-cookie']).toBeDefined();
     const refreshTokenCookie = res.headers['set-cookie'][0];
     testRefreshToken = refreshTokenCookie.split(';')[0].split('=')[1];
   });
@@ -62,7 +90,7 @@ describe('Authentication API', () => {
     const res = await request(app)
       .post('/api/auth/login')
       .send({
-        username: 'testuser',
+        username: TEST_USERNAME,
         password: 'wrongpassword',
       });
     expect(res.statusCode).toEqual(401);
@@ -73,7 +101,7 @@ describe('Authentication API', () => {
     const res = await request(app)
       .post('/api/auth/forgot-password')
       .send({
-        email: 'test@example.com',
+        email: TEST_EMAIL,
       });
     expect(res.statusCode).toEqual(200);
     expect(res.body).toHaveProperty('message', 'Password reset token generated');
@@ -84,8 +112,10 @@ describe('Authentication API', () => {
     const forgotPasswordRes = await request(app)
       .post('/api/auth/forgot-password')
       .send({
-        email: 'test@example.com',
+        email: TEST_EMAIL,
       });
+    expect(forgotPasswordRes.statusCode).toEqual(200);
+    expect(forgotPasswordRes.body).toHaveProperty('token');
     const token = forgotPasswordRes.body.token;
 
     // Then, reset the password
@@ -97,7 +127,6 @@ describe('Authentication API', () => {
   });
 
   it('should refresh an access token', async () => {
-    // Then, refresh the access token
     const refreshRes = await request(app)
       .post('/api/auth/refresh')
       .set('Cookie', [`refreshToken=${testRefreshToken}`]);

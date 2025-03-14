@@ -1,52 +1,42 @@
-// authMiddleware.js
+// middlewares/authMiddleware.js
 const jwt = require('jsonwebtoken');
-const logger = require('../utils/logger');
-const db = require('../config/db');
+const { UnauthorizedError, ForbiddenError } = require('../utils/errors'); // Import ForbiddenError
+const { isBlacklisted } = require('../utils/tokenBlacklist');
+const config = require('../config/config');
 
-// In-memory token blacklist (for simplicity)
-const tokenBlacklist = new Set();
-
-// Helper function to add token to blacklist
-const blacklistToken = (token) => {
-  tokenBlacklist.add(token);
-};
-
-// Helper function to check if token is blacklisted
-const isTokenBlacklisted = (token) => {
-  return tokenBlacklist.has(token);
-};
-
-// Middleware to authenticate JWT token
-exports.authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  if (token == null) {
-    return res.status(401).json({ message: 'No token provided' });
+  if (!token) {
+    return next(new UnauthorizedError('No token provided'));
   }
 
-  // Check if the token is blacklisted
-  if (isTokenBlacklisted(token)) {
-    return res.status(401).json({ message: 'Invalid token' });
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      logger.error(`Invalid token: ${err.message}`);
-      return res.status(403).json({ message: 'Invalid token' });
+  try {
+    const isTokenInBlacklist = await isBlacklisted(token);
+    if (isTokenInBlacklist) {
+      return next(new UnauthorizedError('Token is blacklisted'));
     }
 
-    req.user = user;
-    next();
-  });
+    jwt.verify(token, config.jwt.secret, (err, user) => {
+      if (err) {
+        return next(new UnauthorizedError('Invalid token'));
+      }
+      req.user = user;
+      next();
+    });
+  } catch (err) {
+    next(err);
+  }
 };
 
-// Middleware to authorize user role
-exports.authorizeRole = (allowedRoles) => {
+const authorizeRole = (roles) => {
   return (req, res, next) => {
-    if (!req.user || !allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Unauthorized' });
+    if (!req.user || !roles.includes(req.user.role)) {
+      return next(new ForbiddenError('Insufficient permissions'));
     }
     next();
   };
 };
+
+module.exports = { authenticateToken, authorizeRole };

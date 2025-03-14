@@ -1,4 +1,4 @@
-// rateLimiter.js
+// middlewares/rateLimiter.js
 const rateLimit = require('express-rate-limit');
 
 // Rate limiter for general API endpoints
