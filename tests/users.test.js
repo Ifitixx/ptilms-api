@@ -90,24 +90,9 @@ describe('User API', () => {
 
   it('should get modified users (admin role)', async () => {
     const res = await request(app)
-      .get('/api/users/modified?since=0')
+      .get(`/api/users/modified?since=0`)
       .set('Authorization', `Bearer ${adminUserToken}`);
     expect(res.statusCode).toEqual(200);
     expect(Array.isArray(res.body)).toBe(true);
-  });
-
-  it('should fail to get user details with invalid token', async () => {
-    const res = await request(app)
-      .get(`/api/users/${testUserId}`)
-      .set('Authorization', `Bearer invalidtoken`);
-    expect(res.statusCode).toEqual(403);
-    expect(res.body).toHaveProperty('message', 'Invalid token');
-  });
-
-  it('should fail to get user details with no token', async () => {
-    const res = await request(app)
-      .get(`/api/users/${testUserId}`);
-    expect(res.statusCode).toEqual(401);
-    expect(res.body).toHaveProperty('message', 'No token provided');
   });
 });

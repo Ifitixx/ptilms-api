@@ -17,12 +17,43 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middlewares
-app.use(cors({
-  origin: 'http://localhost:8080', // Replace with your frontend URL
+// Configure CORS
+const corsOptions = {
+  origin: 'http://localhost:8080', // Replace with your frontend URL in production
   credentials: true,
+};
+
+// In production, you might want to dynamically set the origin based on the request
+if (process.env.NODE_ENV === 'production') {
+  corsOptions.origin = (origin, callback) => {
+    const allowedOrigins = ['https://your-frontend-domain.com', 'https://another-allowed-domain.com']; // Add your allowed domains here
+    if (allowedOrigins.includes(origin) || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  };
+}
+
+app.use(cors(corsOptions));
+
+// Configure Helmet
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"], // Add any external script sources here if needed
+      styleSrc: ["'self'", "'unsafe-inline'"], // Add any external style sources here if needed
+      imgSrc: ["'self'", "data:"], // Add any external image sources here if needed
+      connectSrc: ["'self'"], // Add any external API endpoints here if needed
+    },
+  },
+  referrerPolicy: { policy: 'same-origin' },
 }));
-app.use(helmet());
+
+// Configure Morgan
 app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
+
 app.use(express.json());
 app.use(cookieParser());
 

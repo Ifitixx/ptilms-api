@@ -1,256 +1,232 @@
-const db = require('../config/db');
+// authController 
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
-const { validationResult } = require('express-validator');
-const { parseISO } = require('date-fns');
+const db = require('../config/db');
 const logger = require('../utils/logger');
+const sanitizeHtml = require('sanitize-html');
 
-require('dotenv').config();
+// In-memory token blacklist (for simplicity)
+const tokenBlacklist = new Set();
 
-const generateAccessToken = (user) => {
-  return jwt.sign(
+// Helper function to add token to blacklist
+const blacklistToken = (token) => {
+  tokenBlacklist.add(token);
+};
+
+// Helper function to check if token is blacklisted
+const isTokenBlacklisted = (token) => {
+  return tokenBlacklist.has(token);
+};
+
+// Helper function to generate tokens
+const generateTokens = (user) => {
+  const accessToken = jwt.sign(
     { userId: user.user_id, role: user.role },
     process.env.JWT_SECRET,
-    { expiresIn: '1h' }
+    { expiresIn: '15m' } // Short-lived access token
   );
-};
 
-const generateRefreshToken = (user) => {
-  return jwt.sign(
-    { userId: user.user_id, tokenId: uuidv4() },
+  const refreshToken = jwt.sign(
+    { userId: user.user_id, role: user.role },
     process.env.JWT_REFRESH_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: '7d' } // Longer-lived refresh token
   );
+
+  return { accessToken, refreshToken };
 };
 
-exports.registerUser = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    logger.warn('Validation error during registration:', errors.array());
-    return res.status(400).json({ errors: errors.array() });
-  }
+// Helper function to sanitize user input
+const sanitizeInput = (input) => {
+  return sanitizeHtml(input, {
+    allowedTags: [], // No tags allowed
+    allowedAttributes: {}, // No attributes allowed
+  });
+};
 
+// Register a new user
+exports.registerUser = async (req, res, next) => {
   try {
     const { username, email, password, role, phone_number, date_of_birth, sex, profile_picture_url } = req.body;
-    if (!username || !email || !password || !role) {
-      logger.warn('Missing required fields during registration');
-      return res.status(400).json({ message: "Missing required fields" });
-    }
-    const parsedDateOfBirth = date_of_birth ? parseISO(date_of_birth) : null;
 
-    const checkQuery = 'SELECT * FROM users WHERE username = ? OR email = ?';
-    const [existingUsers] = await db.execute(checkQuery, [username, email]);
+    // Sanitize user input
+    const sanitizedUsername = sanitizeInput(username);
+    const sanitizedEmail = sanitizeInput(email);
+    const sanitizedRole = sanitizeInput(role);
+    const sanitizedPhoneNumber = sanitizeInput(phone_number);
+    const sanitizedSex = sanitizeInput(sex);
+    const sanitizedProfilePictureUrl = sanitizeInput(profile_picture_url);
 
+    // Check if the username or email already exists
+    const [existingUsers] = await db.execute('SELECT * FROM users WHERE username = ? OR email = ?', [sanitizedUsername, sanitizedEmail]);
     if (existingUsers.length > 0) {
-      logger.warn(`Username or email already exists: ${username}, ${email}`);
-      return res.status(400).json({ message: 'Username or email already exists' });
+      return res.status(409).json({ message: 'Username or email already exists' });
     }
 
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Create a new user
     const userId = uuidv4();
     const insertQuery = `
       INSERT INTO users 
       (user_id, username, email, password, role, phone_number, date_of_birth, sex, profile_picture_url)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    await db.execute(insertQuery, [userId, username, email, hashedPassword, role, phone_number, parsedDateOfBirth, sex, profile_picture_url]);
-    logger.info(`User registered successfully: ${userId}`);
-    return res.status(201).json({ message: 'User registered successfully', userId });
+    await db.execute(insertQuery, [userId, sanitizedUsername, sanitizedEmail, hashedPassword, sanitizedRole, sanitizedPhoneNumber, date_of_birth, sanitizedSex, sanitizedProfilePictureUrl]);
+
+    res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
-    logger.error('Error during user registration:', error);
-    return res.status(500).json({ message: 'Internal Server Error' });
+    logger.error(`Error registering user: ${error.message}`);
+    next(error);
   }
 };
 
-exports.loginUser = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    logger.warn('Validation error during login:', errors.array());
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  const { username, email, password } = req.body;
-  if (!password || (!username && !email)) {
-    logger.warn('Missing username/email or password during login');
-    return res.status(400).json({ message: "Please provide username (or email) and password" });
-  }
-
-  let query = "";
-  let param = "";
-
-  if (username) {
-    query = "SELECT * FROM users WHERE username = ?";
-    param = username;
-  } else {
-    query = "SELECT * FROM users WHERE email = ?";
-    param = email;
-  }
-
+// Login an existing user
+exports.loginUser = async (req, res, next) => {
   try {
-    const [results] = await db.execute(query, [param]);
-    if (results.length === 0) {
-      logger.warn(`Invalid credentials for username/email: ${param}`);
+    const { username, email, password } = req.body;
+
+    // Find the user by username or email
+    const [users] = await db.execute('SELECT * FROM users WHERE username = ? OR email = ?', [username, email]);
+    if (users.length === 0) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const user = results[0];
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      logger.warn(`Invalid password for username/email: ${param}`);
+    const user = users[0];
+
+    // Check the password
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
+    // Generate tokens
+    const { accessToken, refreshToken } = generateTokens(user);
 
+    // Set the refresh token as an HTTP-only cookie
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Set to true in production (HTTPS)
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      secure: process.env.NODE_ENV === 'production', // Use secure in production
     });
-    logger.info(`User logged in successfully: ${user.user_id}`);
-    return res.json({ message: 'Login successful', accessToken, userId: user.user_id });
+
+    res.status(200).json({ message: 'Login successful', accessToken });
   } catch (error) {
-    logger.error('Error during user login:', error);
-    return res.status(500).json({ message: 'Internal Server Error' });
+    logger.error(`Error logging in user: ${error.message}`);
+    next(error);
   }
 };
 
-exports.forgotPassword = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    logger.warn('Validation error during forgot password:', errors.array());
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  const { email } = req.body;
-  if (!email) {
-    logger.warn('Email is required for forgot password');
-    return res.status(400).json({ message: "Email is required" });
-  }
-
+// Forgot password
+exports.forgotPassword = async (req, res, next) => {
   try {
-    const query = 'SELECT * FROM users WHERE email = ?';
-    const [results] = await db.execute(query, [email]);
-    if (results.length === 0) {
-      logger.warn(`User not found for email: ${email}`);
+    const { email } = req.body;
+
+    // Find the user by email
+    const [users] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
+    if (users.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const token = uuidv4();
-    const expiry = Date.now() + 3600000; // Valid for 1 hour
-    const updateQuery = 'UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE email = ?';
-    await db.execute(updateQuery, [token, expiry, email]);
-    logger.info(`Password reset token generated for email: ${email}`);
-    // In production, you would send this token by email.
-    return res.json({ message: 'Password reset token generated', token });
+    const user = users[0];
+
+    // Generate a reset token
+    const resetToken = jwt.sign({ userId: user.user_id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    // Update the user's reset token in the database
+    await db.execute('UPDATE users SET reset_token = ? WHERE user_id = ?', [resetToken, user.user_id]);
+
+    // Send the reset token to the user's email (implementation not included)
+    logger.info(`Password reset token generated for user ${user.user_id}: ${resetToken}`);
+
+    res.status(200).json({ message: 'Password reset token generated', token: resetToken });
   } catch (error) {
-    logger.error('Error during forgot password:', error);
-    return res.status(500).json({ message: 'Internal Server Error' });
+    logger.error(`Error generating password reset token: ${error.message}`);
+    next(error);
   }
 };
 
-exports.resetPassword = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    logger.warn('Validation error during reset password:', errors.array());
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  const { token, newPassword } = req.body;
-  if (!token || !newPassword) {
-    logger.warn('Token and newPassword are required for reset password');
-    return res.status(400).json({ message: "Token and newPassword are required" });
-  }
-
+// Reset password
+exports.resetPassword = async (req, res, next) => {
   try {
-    const query = 'SELECT * FROM users WHERE reset_token = ?';
-    const [results] = await db.execute(query, [token]);
-    if (results.length === 0) {
-      logger.warn(`Invalid token: ${token}`);
-      return res.status(404).json({ message: 'Invalid token' });
+    const { token, newPassword } = req.body;
+
+    // Verify the reset token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Find the user by user ID
+    const [users] = await db.execute('SELECT * FROM users WHERE user_id = ? AND reset_token = ?', [decoded.userId, token]);
+    if (users.length === 0) {
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
     }
 
-    const user = results[0];
-    if (Date.now() > user.reset_token_expiry) {
-      logger.warn(`Token expired: ${token}`);
-      return res.status(400).json({ message: 'Token expired' });
-    }
+    const user = users[0];
 
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
-    const updateQuery = 'UPDATE users SET password = ?, reset_token = NULL, reset_token_expiry = NULL WHERE user_id = ?';
-    await db.execute(updateQuery, [hashedPassword, user.user_id]);
-    logger.info(`Password reset successfully for user: ${user.user_id}`);
-    return res.json({ message: 'Password reset successfully' });
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    // Update the user's password and clear the reset token
+    await db.execute('UPDATE users SET password = ?, reset_token = NULL WHERE user_id = ?', [hashedPassword, user.user_id]);
+
+    res.status(200).json({ message: 'Password reset successfully' });
   } catch (error) {
-    logger.error('Error during reset password:', error);
-    return res.status(500).json({ message: 'Internal Server Error' });
+    logger.error(`Error resetting password: ${error.message}`);
+    next(error);
   }
 };
 
-exports.verifyResetToken = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    logger.warn('Validation error during verify reset token:', errors.array());
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  const { token } = req.body;
-  if (!token) {
-    logger.warn('Token is required for verify reset token');
-    return res.status(400).json({ message: 'Token is required' });
-  }
-
+// Refresh token
+exports.refreshToken = async (req, res, next) => {
   try {
-    const query = 'SELECT * FROM users WHERE reset_token = ?';
-    const [results] = await db.execute(query, [token]);
-    if (results.length === 0) {
-      logger.warn(`Invalid token: ${token}`);
-      return res.status(404).json({ message: 'Invalid token' });
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({ message: 'No refresh token provided' });
     }
 
-    const user = results[0];
-    if (Date.now() > user.reset_token_expiry) {
-      logger.warn(`Token expired: ${token}`);
-      return res.status(400).json({ message: 'Token expired' });
-    }
-
-    logger.info(`Token verified successfully: ${token}`);
-    return res.json({ valid: true });
-  } catch (error) {
-    logger.error('Error during verify reset token:', error);
-    return res.status(500).json({ message: 'Internal Server Error' });
-  }
-};
-
-exports.refreshToken = async (req, res) => {
-  const refreshToken = req.cookies.refreshToken;
-  if (!refreshToken) {
-    logger.warn('No refresh token provided');
-    return res.status(401).json({ message: 'Refresh token is required' });
-  }
-
-  try {
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-    // In a real application, you would check if the refresh token is blacklisted here.
-
-    const query = 'SELECT * FROM users WHERE user_id = ?';
-    const [results] = await db.execute(query, [decoded.userId]);
-
-    if (results.length === 0) {
-      logger.warn(`User not found for refresh token: ${decoded.userId}`);
+    // Check if the token is blacklisted
+    if (isTokenBlacklisted(refreshToken)) {
       return res.status(401).json({ message: 'Invalid refresh token' });
     }
 
-    const user = results[0];
-    const accessToken = generateAccessToken(user);
-    logger.info(`Access token refreshed for user: ${user.user_id}`);
-    return res.json({ accessToken });
+    // Verify the refresh token
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+
+    // Find the user by user ID
+    const [users] = await db.execute('SELECT * FROM users WHERE user_id = ?', [decoded.userId]);
+    if (users.length === 0) {
+      return res.status(401).json({ message: 'Invalid refresh token' });
+    }
+
+  
+    const user = users[0];
+
+    // Generate new tokens
+    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
+
+    // Blacklist the old refresh token
+    blacklistToken(refreshToken);
+
+    // Set the new refresh token as an HTTP-only cookie
+    res.cookie('refreshToken', newRefreshToken, {
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      secure: process.env.NODE_ENV === 'production', // Use secure in production
+    });
+
+    res.status(200).json({ accessToken });
   } catch (error) {
-    logger.error('Invalid refresh token:', error);
-    return res.status(401).json({ message: 'Invalid refresh token' });
+    logger.error(`Error refreshing token: ${error.message}`);
+
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Refresh token expired' });
+    }
+
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ message: 'Invalid refresh token' });
+    }
+
+    next(error);
   }
 };

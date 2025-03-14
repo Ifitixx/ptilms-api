@@ -9,6 +9,7 @@ const logger = require('../utils/logger');
 describe('Authentication API', () => {
   let testUserId;
   let testUserToken;
+  let testRefreshToken;
 
   beforeAll(async () => {
     // Create a test user
@@ -52,6 +53,9 @@ describe('Authentication API', () => {
     expect(res.body).toHaveProperty('message', 'Login successful');
     expect(res.body).toHaveProperty('accessToken');
     testUserToken = res.body.accessToken;
+    // Extract the refresh token from the cookie
+    const refreshTokenCookie = res.headers['set-cookie'][0];
+    testRefreshToken = refreshTokenCookie.split(';')[0].split('=')[1];
   });
 
   it('should fail login with incorrect password', async () => {
@@ -75,23 +79,6 @@ describe('Authentication API', () => {
     expect(res.body).toHaveProperty('message', 'Password reset token generated');
   });
 
-  it('should verify a reset token', async () => {
-    // First, get a token by requesting a password reset
-    const forgotPasswordRes = await request(app)
-      .post('/api/auth/forgot-password')
-      .send({
-        email: 'test@example.com',
-      });
-    const token = forgotPasswordRes.body.token;
-
-    // Then, verify the token
-    const verifyRes = await request(app)
-      .post('/api/auth/verify-reset-token')
-      .send({ token });
-    expect(verifyRes.statusCode).toEqual(200);
-    expect(verifyRes.body).toHaveProperty('valid', true);
-  });
-
   it('should reset a password', async () => {
     // First, get a token by requesting a password reset
     const forgotPasswordRes = await request(app)
@@ -110,22 +97,10 @@ describe('Authentication API', () => {
   });
 
   it('should refresh an access token', async () => {
-    // First, log in to get a refresh token
-    const loginRes = await request(app)
-      .post('/api/auth/login')
-      .send({
-        username: 'testuser',
-        password: 'newtestpassword',
-      });
-
-    // Extract the refresh token from the cookie
-    const refreshTokenCookie = loginRes.headers['set-cookie'][0];
-    const refreshToken = refreshTokenCookie.split(';')[0].split('=')[1];
-
     // Then, refresh the access token
     const refreshRes = await request(app)
       .post('/api/auth/refresh')
-      .set('Cookie', [`refreshToken=${refreshToken}`]);
+      .set('Cookie', [`refreshToken=${testRefreshToken}`]);
     expect(refreshRes.statusCode).toEqual(200);
     expect(refreshRes.body).toHaveProperty('accessToken');
   });
