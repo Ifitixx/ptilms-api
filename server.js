@@ -2,29 +2,38 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const cookieParser = require('cookie-parser');
+const helmet = require('helmet');
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./swagger.js');
+const logger = require('./utils/logger');
+const errorHandler = require('./middlewares/errorHandler');
 require('dotenv').config();
 
-const app = express();
-app.use(express.json());
-app.use(cors());
-app.use(morgan('dev'));
-
-// Import route modules
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 
-// Mount routes; the API endpoints will be available under these prefixes:
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middlewares
+app.use(cors({
+  origin: 'http://localhost:8080', // Replace with your frontend URL
+  credentials: true,
+}));
+app.use(helmet());
+app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
+app.use(express.json());
+app.use(cookieParser());
+
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Internal Server Error' });
-});
+app.use(errorHandler);
 
-// Start the server
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  logger.info(`Server is running on port ${PORT}`);
 });

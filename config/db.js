@@ -1,22 +1,28 @@
-const mysql = require('mysql2');
+const mysql = require('mysql2/promise'); // Use promise-based API
 require('dotenv').config();
+const logger = require('../utils/logger');
 
-// Create connection with settings from .env
-const connection = mysql.createConnection({
+// Create a connection pool
+const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'ptilms',
-  port: process.env.DB_PORT || 3306
+  port: process.env.DB_PORT || 3306,
+  waitForConnections: true,
+  connectionLimit: 10, // Adjust as needed
+  queueLimit: 0,
 });
 
-connection.connect((err) => {
-  if (err) {
-    console.error('MySQL connection error:', err);
-    return;
-  }
-  console.log('Connected to MySQL database.');
-});
+// Test the connection
+pool.getConnection()
+  .then(connection => {
+    logger.info('Connected to MySQL database.');
+    connection.release();
+  })
+  .catch(err => {
+    logger.error('MySQL connection error:', err);
+  });
 
 // Create the "users" table if it doesn’t exist
 const createUsersTableQuery = `
@@ -37,10 +43,9 @@ CREATE TABLE IF NOT EXISTS users (
 );
 `;
 
-connection.query(createUsersTableQuery, (err) => {
-  if (err) console.error("Error creating users table:", err);
-  else console.log("Users table is ready.");
-});
+pool.query(createUsersTableQuery)
+  .then(() => logger.info("Users table is ready."))
+  .catch(err => logger.error("Error creating users table:", err));
 
 // Add the "modified_at" column if it doesn't exist
 const addModifiedAtColumnQuery = `
@@ -48,30 +53,26 @@ ALTER TABLE users
 ADD COLUMN IF NOT EXISTS modified_at BIGINT;
 `;
 
-connection.query(addModifiedAtColumnQuery, (err) => {
-  if (err) console.error("Error adding modified_at column:", err);
-  else console.log("modified_at column added or already exists.");
-});
+pool.query(addModifiedAtColumnQuery)
+  .then(() => logger.info("modified_at column added or already exists."))
+  .catch(err => logger.error("Error adding modified_at column:", err));
 
 // Create trigger to update modified_at column on update
 const createTriggerQuery = `
-DELIMITER //
+DELIMITER $$
 
 CREATE TRIGGER before_users_update
 BEFORE UPDATE ON users
 FOR EACH ROW
 BEGIN
   SET NEW.modified_at = UNIX_TIMESTAMP(NOW(3)) * 1000;
-END;
-
-//
+END$$
 
 DELIMITER ;
 `;
 
-connection.query(createTriggerQuery, (err) => {
-  if (err) console.error("Error creating trigger:", err);
-  else console.log("Trigger created successfully.");
-});
+pool.query(createTriggerQuery)
+  .then(() => logger.info("Trigger created successfully."))
+  .catch(err => logger.error("Error creating trigger:", err));
 
-module.exports = connection;
+module.exports = pool;
