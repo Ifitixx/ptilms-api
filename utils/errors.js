@@ -1,70 +1,48 @@
-// utils/errors.js
-class AppError extends Error {
-    constructor(message, statusCode) {
-      super(message);
-      this.statusCode = statusCode;
-      this.status = `${statusCode}`.startsWith('4') ? 'fail' : 'error';
-      this.isOperational = true;
-  
-      Error.captureStackTrace(this, this.constructor);
-    }
+// ptilms-api/utils/errors.js
+class CustomError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
   }
-  
-  class ValidationError extends AppError {
-    constructor(message) {
-      super(message, 400);
-      this.name = 'ValidationError';
-    }
+}
+
+class ValidationError extends CustomError {
+  constructor(errors) {
+    super('Validation Error');
+    this.errors = errors;
   }
-  
-  class UnauthorizedError extends AppError {
-    constructor(message) {
-      super(message, 401);
-      this.name = 'UnauthorizedError';
-    }
+}
+
+class UnauthorizedError extends CustomError {
+  constructor(message = 'Unauthorized') {
+    super(message);
   }
-  
-  class ForbiddenError extends AppError {
-    constructor(message) {
-      super(message, 403);
-      this.name = 'ForbiddenError';
-    }
+}
+
+class BadRequestError extends CustomError {
+  constructor(message = 'Bad Request') {
+    super(message);
   }
-  
-  class NotFoundError extends AppError {
-    constructor(message) {
-      super(message, 404);
-      this.name = 'NotFoundError';
-    }
+}
+
+class NotFoundError extends CustomError {
+  constructor(message = 'Not Found') {
+    super(message);
   }
-  
-  class ConflictError extends AppError {
-    constructor(message) {
-      super(message, 409);
-      this.name = 'ConflictError';
-    }
+}
+
+class ConflictError extends CustomError {
+  constructor(message = 'Conflict') {
+    super(message);
   }
-  class BadRequestError extends AppError {
-    constructor(message) {
-      super(message, 400);
-      this.name = 'BadRequestError';
-    }
-  }
-  class InternalServerError extends AppError {
-    constructor(message) {
-      super(message, 500);
-      this.name = 'InternalServerError';
-    }
-  }
-  
-  module.exports = {
-    AppError,
-    ValidationError,
-    UnauthorizedError,
-    ForbiddenError,
-    NotFoundError,
-    ConflictError,
-    BadRequestError,
-    InternalServerError
-  };
-  
+}
+
+module.exports = {
+  CustomError,
+  ValidationError,
+  UnauthorizedError,
+  BadRequestError,
+  NotFoundError,
+  ConflictError,
+};

@@ -1,34 +1,46 @@
-// config/config.js
-require('dotenv').config();
+// ptilms-api/config/config.js
+const dotenv = require('dotenv');
+dotenv.config(); // Load environment variables from .env file
+
+const { UnauthorizedError } = require('../utils/errors');
+const logger = require('../utils/logger');
+
+// Check if JWT_SECRET and JWT_REFRESH_SECRET are set
+if (!process.env.JWT_SECRET) {
+  logger.error('Error: JWT_SECRET environment variable is not set.');
+  throw new UnauthorizedError('JWT_SECRET environment variable is not set.');
+}
+
+if (!process.env.JWT_REFRESH_SECRET) {
+  logger.error('Error: JWT_REFRESH_SECRET environment variable is not set.');
+  throw new UnauthorizedError('JWT_REFRESH_SECRET environment variable is not set.');
+}
 
 module.exports = {
   env: process.env.NODE_ENV || 'development',
   port: process.env.PORT || 3000,
-  db: {
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    name: process.env.DB_NAME || 'ptilms',
-    port: process.env.DB_PORT || 3306,
-  },
   jwt: {
     secret: process.env.JWT_SECRET,
     refreshSecret: process.env.JWT_REFRESH_SECRET,
-    expiresIn: process.env.JWT_EXPIRES_IN || '1h',
-    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+    accessExpiry: process.env.JWT_ACCESS_EXPIRY || '15m',
+    refreshExpiry: process.env.JWT_REFRESH_EXPIRY || '7d',
   },
-  rateLimit: {
-    apiWindowMs: process.env.RATE_LIMIT_API_WINDOW_MS || 15000,
-    apiMax: process.env.RATE_LIMIT_API_MAX || 100,
-    loginWindowMs: process.env.RATE_LIMIT_LOGIN_WINDOW_MS || 60000,
-    loginMax: process.env.RATE_LIMIT_LOGIN_MAX || 5,
+  cors: {
+    origins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:8080'],
+    methods: process.env.CORS_METHODS ? process.env.CORS_METHODS.split(',') : ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   },
-  test: {
-    testUsername: process.env.TEST_USERNAME,
-    testEmail: process.env.TEST_EMAIL,
-    testPassword: process.env.TEST_PASSWORD,
-    adminUsername: process.env.ADMIN_USERNAME,
-    adminEmail: process.env.ADMIN_EMAIL,
-    adminPassword: process.env.ADMIN_PASSWORD,
+  database: {
+    url: process.env.DATABASE_URL || 'mysql://ptilms_user:Macpizzy00719991@localhost:3306/ptilms',
+    dialect: process.env.DATABASE_DIALECT || 'mysql',
   },
+  redis: {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: process.env.REDIS_PORT || 6379,
+    password: process.env.REDIS_PASSWORD || 'Macpizzy00719991',
+  },
+  rateLimiter: {
+    windowMs: process.env.RATE_LIMIT_WINDOW_MS || '900000',
+    max: process.env.RATE_LIMIT_MAX || 100,
+  },
+  saltRounds: process.env.SALT_ROUNDS || 12,
 };

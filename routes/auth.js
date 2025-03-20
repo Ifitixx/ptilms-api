@@ -1,192 +1,214 @@
-// routes/auth.js
+// ptilms-api/routes/auth.js
 const express = require('express');
 const { body } = require('express-validator');
-const authController = require('../controllers/authController');
 const { validate } = require('../middlewares/validationMiddleware');
 const { loginLimiter } = require('../middlewares/rateLimiter');
+const { USER_SELECTABLE_ROLES } = require('../config/constants');
+const logger = require('../utils/logger'); // Import the logger
 
-const router = express.Router();
+module.exports = (authController) => {
+  const router = express.Router();
 
-/**
- * @swagger
- * tags:
- *   name: Authentication
- *   description: API endpoints for user authentication
- */
+  /**
+   * @swagger
+   * /api/v1/auth/register:
+   *   post:
+   *     summary: Register a new user
+   *     tags: [Auth]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               username:
+   *                 type: string
+   *               email:
+   *                 type: string
+   *               password:
+   *                 type: string
+   *               role:
+   *                 type: string
+   *     responses:
+   *       201:
+   *         description: User registered successfully
+   *       400:
+   *         description: Bad request
+   */
+  router.post(
+    '/register',
+    validate([
+      body('username')
+        .trim()
+        .notEmpty().withMessage('Username cannot be empty')
+        .isLength({ min: 3, max: 255 }).withMessage('Username must be between 3 and 255 characters'),
+      body('email')
+        .trim()
+        .notEmpty().withMessage('Email cannot be empty')
+        .isEmail().withMessage('Invalid email format'),
+      body('password')
+        .trim()
+        .notEmpty().withMessage('Password cannot be empty')
+        .isLength({ min: 8 }).withMessage('Password must be at least 8 characters long')
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/).withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
+      body('role')
+        .trim()
+        .notEmpty().withMessage('Role cannot be empty')
+        .isIn(USER_SELECTABLE_ROLES).withMessage(`Role must be one of: ${USER_SELECTABLE_ROLES.join(', ')}`),
+    ]),
+    (req, res, next) => authController.registerUser(req, res, next)
+  );
 
-/**
- * @swagger
- * /api/auth/register:
- *   post:
- *     tags: [Authentication]
- *     summary: Register a new user
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/User'
- *     responses:
- *       201:
- *         description: User created successfully
- *       400:
- *         description: Bad Request - Invalid input data
- *       409:
- *         description: Conflict - Username or email already exists
- *       500:
- *         description: Internal Server Error
- */
-// Register a new user
-router.post(
-  '/register',
-  validate, 
-  authController.registerUser
-);
+  /**
+   * @swagger
+   * /api/v1/auth/login:
+   *   post:
+   *     summary: Login a user
+   *     tags: [Auth]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               email:
+   *                 type: string
+   *               password:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: User logged in successfully
+   *       400:
+   *         description: Bad request
+   *       401:
+   *         description: Unauthorized
+   */
+  router.post(
+    '/login',
+    loginLimiter,
+    validate([
+      body('email')
+        .trim()
+        .notEmpty().withMessage('Email cannot be empty')
+        .isEmail().withMessage('Invalid email format'),
+      body('password')
+        .trim()
+        .notEmpty().withMessage('Password cannot be empty'),
+    ]),
+    (req, res, next) => authController.loginUser(req, res, next)
+  );
 
-/**
- * @swagger
- * /api/auth/login:
- *   post:
- *     tags: [Authentication]
- *     summary: Login an existing user
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/Login'
- *     responses:
- *       200:
- *         description: Login successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 accessToken:
- *                   type: string
- *                   description: JWT access token
- *       401:
- *         description: Unauthorized - Invalid credentials
- *       429:
- *         description: Too Many Requests - Too many login attempts
- *       500:
- *         description: Internal Server Error
- */
-// Login an existing user
-router.post(
-  '/login',
-  loginLimiter,
-  [
-    body('username')
-      .notEmpty()
-      .withMessage('Username is required')
-      .trim(),
-    body('password')
-      .notEmpty()
-      .withMessage('Password is required'),
-  ],
-  validate,
-  authController.loginUser
-);
+  /**
+   * @swagger
+   * /api/v1/auth/refresh-token:
+   *   post:
+   *     summary: Refresh a user's access token
+   *     tags: [Auth]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               refreshToken:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: Access token refreshed successfully
+   *       400:
+   *         description: Bad request
+   *       401:
+   *         description: Unauthorized
+   */
+  router.post(
+    '/refresh-token',
+    validate([
+      body('refreshToken')
+        .trim()
+        .notEmpty().withMessage('Refresh token cannot be empty')
+    ]),
+    (req, res, next) => {
+      logger.info('Refresh token endpoint hit');
+      authController.refreshToken(req, res, next);
+    }
+  );
 
-/**
- * @swagger
- * /api/auth/forgot-password:
- *   post:
- *     tags: [Authentication]
- *     summary: Request a password reset token
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/ForgotPassword'
- *     responses:
- *       200:
- *         description: Password reset token generated
- *       400:
- *         description: Bad Request - Invalid input data
- *       404:
- *         description: Not Found - User not found
- *       500:
- *         description: Internal Server Error
- */
-// Forgot password
-router.post(
-  '/forgot-password',
-  [
-    body('email')
-      .isEmail()
-      .withMessage('Invalid email address')
-      .normalizeEmail(),
-  ],
-  validate,
-  authController.forgotPassword
-);
+  /**
+   * @swagger
+   * /api/v1/auth/forgot-password:
+   *   post:
+   *     summary: Initiate password reset
+   *     tags: [Auth]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               email:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: Password reset email sent
+   *       400:
+   *         description: Bad request
+   *       404:
+   *         description: User not found
+   */
+  router.post(
+    '/forgot-password',
+    validate([
+      body('email')
+        .trim()
+        .notEmpty().withMessage('Email cannot be empty')
+        .isEmail().withMessage('Invalid email format'),
+    ]),
+    (req, res, next) => authController.forgotPassword(req, res, next)
+  );
 
-/**
- * @swagger
- * /api/auth/reset-password:
- *   post:
- *     tags: [Authentication]
- *     summary: Reset user password
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/ResetPassword'
- *     responses:
- *       200:
- *         description: Password reset successfully
- *       400:
- *         description: Bad Request - Invalid or expired reset token
- *       500:
- *         description: Internal Server Error
- */
-// Reset password
-router.post(
-  '/reset-password',
-  [
-    body('token')
-      .notEmpty()
-      .withMessage('Token is required')
-      .trim(),
-    body('newPassword')
-      .isLength({ min: 8 })
-      .withMessage('New password must be at least 8 characters long')
-      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/).withMessage('New password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
-  ],
-  validate,
-  authController.resetPassword
-);
+  /**
+   * @swagger
+   * /api/v1/auth/reset-password:
+   *   post:
+   *     summary: Reset password
+   *     tags: [Auth]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               token:
+   *                 type: string
+   *               newPassword:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: Password reset successfully
+   *       400:
+   *         description: Bad request
+   *       404:
+   *         description: User not found
+   */
+  router.post(
+    '/reset-password',
+    validate([
+      body('token')
+        .trim()
+        .notEmpty().withMessage('Token cannot be empty'),
+      body('newPassword')
+        .trim()
+        .notEmpty().withMessage('New password cannot be empty')
+        .isLength({ min: 8 }).withMessage('Password must be at least 8 characters long')
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/).withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
+    ]),
+    (req, res, next) => authController.resetPassword(req, res, next)
+  );
 
-/**
- * @swagger
- * /api/auth/refresh:
- *   post:
- *     tags: [Authentication]
- *     summary: Refresh access token
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Access token refreshed successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 accessToken:
- *                   type: string
- *                   description: JWT access token
- *       401:
- *         description: Unauthorized - Invalid refresh token
- *       500:
- *         description: Internal Server Error
- */
-// Refresh token
-router.post('/refresh', authController.refreshToken);
-
-module.exports = router;
+  return router;
+};

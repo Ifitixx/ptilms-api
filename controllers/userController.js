@@ -1,141 +1,66 @@
-// controllers/userController.js
-const bcrypt = require('bcrypt');
-const { v4: uuidv4 } = require('uuid');
-const db = require('../config/db');
+// ptilms-api/controllers/userController.js
 const logger = require('../utils/logger');
-const sanitizeHtml = require('sanitize-html');
-const { NotFoundError, UnauthorizedError, BadRequestError } = require('../utils/errors');
 
-// Helper function to sanitize user input
-const sanitizeInput = (input) => {
-  return sanitizeHtml(input, {
-    allowedTags: [], // No tags allowed
-    allowedAttributes: {}, // No attributes allowed
-  });
-};
-
-// Get user by ID
-exports.getUserById = async (req, res, next) => {
-  try {
-    const { userId } = req.params;
-
-    // Find the user by user ID
-    const [users] = await db.execute('SELECT user_id, username, email, role, phone_number, date_of_birth, sex, profile_picture_url FROM users WHERE user_id = ?', [userId]);
-    if (users.length === 0) {
-      throw new NotFoundError('User not found');
-    }
-
-    const user = users[0];
-    res.status(200).json(user);
-  } catch (error) {
-    logger.error(`Error getting user by ID: ${error.message}`);
-    next(error);
+class UserController {
+  constructor({ userService }) {
+    this.userService = userService;
   }
-};
 
-// Update user
-exports.updateUser = async (req, res, next) => {
-  try {
-    const { userId } = req.params;
-    const { username, email, phone_number, date_of_birth, sex, profile_picture_url } = req.body;
-
-    // Sanitize user input
-    const sanitizedUsername = sanitizeInput(username);
-    const sanitizedEmail = sanitizeInput(email);
-    const sanitizedPhoneNumber = sanitizeInput(phone_number);
-    const sanitizedSex = sanitizeInput(sex);
-    const sanitizedProfilePictureUrl = sanitizeInput(profile_picture_url);
-
-    // Check if the user exists
-    const [existingUsers] = await db.execute('SELECT * FROM users WHERE user_id = ?', [userId]);
-    if (existingUsers.length === 0) {
-      throw new NotFoundError('User not found');
+  async getUserById(req, res, next) {
+    try {
+      const { userId } = req.params;
+      const user = await this.userService.getUserById(userId);
+      res.status(200).json({ success: true, data: { user } });
+    } catch (error) {
+      logger.error(`Error in getUserById: ${error.message}`);
+      next(error);
     }
-
-    // Update the user
-    const updateQuery = `
-      UPDATE users 
-      SET username = ?, email = ?, phone_number = ?, date_of_birth = ?, sex = ?, profile_picture_url = ?
-      WHERE user_id = ?
-    `;
-    await db.execute(updateQuery, [sanitizedUsername, sanitizedEmail, sanitizedPhoneNumber, date_of_birth, sanitizedSex, sanitizedProfilePictureUrl, userId]);
-
-    res.status(200).json({ message: 'User updated successfully' });
-  } catch (error) {
-    logger.error(`Error updating user: ${error.message}`);
-    next(error);
   }
-};
 
-// Change password
-exports.changePassword = async (req, res, next) => {
-  try {
-    const { userId } = req.params;
-    const { currentPassword, newPassword } = req.body;
-
-    // Find the user by user ID
-    const [users] = await db.execute('SELECT * FROM users WHERE user_id = ?', [userId]);
-    if (users.length === 0) {
-      throw new NotFoundError('User not found');
+  async updateUser(req, res, next) {
+    try {
+      const { userId } = req.params;
+      const updatedUser = await this.userService.updateUser(userId, req.body);
+      res.status(200).json({ success: true, data: { user: updatedUser } });
+    } catch (error) {
+      logger.error(`Error in updateUser: ${error.message}`);
+      next(error);
     }
-
-    const user = users[0];
-
-    // Check the current password
-    const passwordMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!passwordMatch) {
-      throw new UnauthorizedError('Incorrect current password');
-    }
-
-    // Hash the new password
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
-
-    // Update the user's password
-    await db.execute('UPDATE users SET password = ? WHERE user_id = ?', [hashedPassword, userId]);
-
-    res.status(200).json({ message: 'Password changed successfully' });
-  } catch (error) {
-    logger.error(`Error changing password: ${error.message}`);
-    next(error);
   }
-};
 
-// Delete user
-exports.deleteUser = async (req, res, next) => {
-  try {
-    const { userId } = req.params;
-
-    // Check if the user exists
-    const [existingUsers] = await db.execute('SELECT * FROM users WHERE user_id = ?', [userId]);
-    if (existingUsers.length === 0) {
-      throw new NotFoundError('User not found');
+  async changePassword(req, res, next) {
+    try {
+      const { userId } = req.params;
+      const { currentPassword, newPassword } = req.body;
+      await this.userService.changePassword(userId, currentPassword, newPassword);
+      res.status(200).json({ success: true, message: 'Password changed successfully' });
+    } catch (error) {
+      logger.error(`Error in changePassword: ${error.message}`);
+      next(error);
     }
-
-    // Delete the user
-    await db.execute('DELETE FROM users WHERE user_id = ?', [userId]);
-
-    res.status(200).json({ message: 'User deleted successfully' });
-  } catch (error) {
-    logger.error(`Error deleting user: ${error.message}`);
-    next(error);
   }
-};
 
-// Get modified users
-exports.getModifiedUsers = async (req, res, next) => {
-  try {
-    const since = req.query.since;
-    const limit = parseInt(req.query.limit) || 10;
-
-    if (!since) {
-      throw new BadRequestError('The since parameter is required');
+  async deleteUser(req, res, next) {
+    try {
+      const { userId } = req.params;
+      await this.userService.deleteUser(userId);
+      res.status(200).json({ success: true, message: 'User deleted successfully' });
+    } catch (error) {
+      logger.error(`Error in deleteUser: ${error.message}`);
+      next(error);
     }
-    // Get modified users since the given timestamp
-    const [modifiedUsers] = await db.execute('SELECT * FROM users WHERE modified_at > ? LIMIT ?', [since, limit]);
-
-    res.status(200).json(modifiedUsers);
-  } catch (error) {
-    logger.error(`Error getting modified users: ${error.message}`);
-    next(error);
   }
-};
+
+  async getModifiedUsers(req, res, next) {
+    try {
+      const { since } = req.query;
+      const users = await this.userService.getModifiedUsers(since);
+      res.status(200).json({ success: true, data: { users } });
+    } catch (error) {
+      logger.error(`Error in getModifiedUsers: ${error.message}`);
+      next(error);
+    }
+  }
+}
+
+module.exports = UserController;
