@@ -1,11 +1,12 @@
 // ptilms-api/middlewares/rateLimiter.js
-const rateLimit = require('express-rate-limit');
-const config = require('../config/config');
-const { RateLimitError } = require('../utils/errors');
+import rateLimit from 'express-rate-limit';
+import config from '../config/config.cjs'; // Correct: Default import
+const { rateLimiter } = config; // Correct: Destructure after default import
+import { RateLimitError } from '../utils/errors.js';
 
 const apiLimiter = rateLimit({
-  windowMs: config.rateLimiter.windowMs,
-  max: config.rateLimiter.max,
+  windowMs: rateLimiter.windowMs,
+  max: rateLimiter.max,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res, next) => {
@@ -23,4 +24,4 @@ const loginLimiter = rateLimit({
   },
 });
 
-module.exports = { apiLimiter, loginLimiter };
+export default { apiLimiter, loginLimiter };

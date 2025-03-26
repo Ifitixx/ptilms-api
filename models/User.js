@@ -1,19 +1,42 @@
 // ptilms-api/models/User.js
-const { Model, DataTypes } = require('sequelize');
-const bcrypt = require('bcrypt');
-const config = require('../config/config');
+import { Model, DataTypes } from 'sequelize';
+import { compare, genSalt, hash } from 'bcrypt';
+import config from '../config/config.cjs'; 
+const { saltRounds } = config; 
+import {
+  USER_USERNAME_MAX_LENGTH,
+  USER_USERNAME_MIN_LENGTH,
+  USER_EMAIL_MAX_LENGTH,
+  USER_PASSWORD_REGEX,
+  USER_PASSWORD_MIN_LENGTH,
+  USER_SEX_ENUM,
+} from '../config/constants.mjs'; 
 
-module.exports = (sequelize) => {
+export default (sequelize) => {
   class User extends Model {
     static associate(models) {
       User.belongsTo(models.Role, {
         foreignKey: 'roleId',
         as: 'role',
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE',
+      });
+      User.hasMany(models.Announcement, {
+        foreignKey: 'userId',
+        as: 'announcements',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+      });
+      User.hasMany(models.ChatMessage, {
+        foreignKey: 'senderId',
+        as: 'messages',
+        onDelete: 'SET NULL', 
+        onUpdate: 'CASCADE',
       });
     }
 
     async verifyPassword(password) {
-      return bcrypt.compare(password, this.password);
+      return compare(password, this.password);
     }
 
     toJSON() {
@@ -27,21 +50,16 @@ module.exports = (sequelize) => {
 
   User.init(
     {
-      id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        primaryKey: true,
-      },
       username: {
-        type: DataTypes.STRING(50),
+        type: DataTypes.STRING(USER_USERNAME_MAX_LENGTH),
         unique: true,
         allowNull: false,
         validate: {
-          len: [3, 50],
+          len: [USER_USERNAME_MIN_LENGTH, USER_USERNAME_MAX_LENGTH],
         },
       },
       email: {
-        type: DataTypes.STRING(100),
+        type: DataTypes.STRING(USER_EMAIL_MAX_LENGTH),
         unique: true,
         allowNull: false,
         validate: {
@@ -53,31 +71,46 @@ module.exports = (sequelize) => {
         allowNull: false,
         validate: {
           isStrongPassword(value) {
-            if (
-              !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(
-                value
-              )
-            ) {
+            if (!USER_PASSWORD_REGEX.test(value)) {
               throw new Error(
-                'Password must contain at least 8 characters, one uppercase, one lowercase, one number and one special character'
+                `Password must contain at least ${USER_PASSWORD_MIN_LENGTH} characters, one uppercase, one lowercase, one number and one special character`
               );
             }
           },
         },
       },
       roleId: {
-        type: DataTypes.UUID, // Change to UUID
-        allowNull: false,
+        type: DataTypes.UUID,
+        allowNull: true, 
       },
-      // Optional fields for profile management
+      phoneNumber: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: 'phone_number',
+      },
+      dateOfBirth: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        field: 'date_of_birth',
+      },
+      sex: {
+        type: DataTypes.ENUM(...USER_SEX_ENUM),
+        allowNull: true,
+      },
+      profilePictureUrl: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: 'profile_picture_url',
+      },
       lastLogin: {
         type: DataTypes.DATE,
-        allowNull: true, // Make it optional
+        allowNull: true,
+        field: 'last_login',
       },
       isVerified: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
-        allowNull: false, // Make it not nullable
+        allowNull: false,
       },
       resetToken: {
         type: DataTypes.STRING,
@@ -93,6 +126,7 @@ module.exports = (sequelize) => {
       modelName: 'User',
       tableName: 'users',
       paranoid: true,
+      underscored: true,
       defaultScope: {
         attributes: { exclude: ['password', 'resetToken', 'resetTokenExpiry'] },
       },
@@ -104,9 +138,8 @@ module.exports = (sequelize) => {
       hooks: {
         beforeSave: async (user) => {
           if (user.changed('password')) {
-            const saltRounds = parseInt(config.saltRounds, 10) || 12; // Convert to number
-            const salt = await bcrypt.genSalt(saltRounds);
-            user.password = await bcrypt.hash(user.password, salt);
+            const salt = await genSalt(saltRounds);
+            user.password = await hash(user.password, salt);
           }
         },
       },

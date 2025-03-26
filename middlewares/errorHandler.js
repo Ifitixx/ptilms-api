@@ -1,6 +1,6 @@
 // ptilms-api/middlewares/errorMiddleware.js
-const { ValidationError, UnauthorizedError, BadRequestError, NotFoundError, ConflictError } = require('../utils/errors');
-const logger = require('../utils/logger');
+import { ValidationError, UnauthorizedError, BadRequestError, NotFoundError, ConflictError } from '../utils/errors';
+import { error as _error } from '../utils/logger.js';
 
 const errorHandler = (err, req, res, next) => {
   let statusCode = 500;
@@ -32,8 +32,8 @@ const errorHandler = (err, req, res, next) => {
     message = 'Database Unique Constraint Error';
     errors = err.errors.map(e => ({ field: e.path, message: e.message }));
   } else {
-    logger.error(`Unhandled error: ${err.message}`);
-    logger.error(err.stack);
+    _error(`Unhandled error: ${err.message}`);
+    _error(err.stack);
   }
 
   // Add error details in development
@@ -50,4 +50,4 @@ const errorHandler = (err, req, res, next) => {
   res.status(statusCode).json(response);
 };
 
-module.exports = { errorHandler };
+export default { errorHandler };

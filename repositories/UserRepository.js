@@ -1,5 +1,5 @@
 // ptilms-api/repositories/UserRepository.js
-const { Op } = require('sequelize');
+import { Op } from 'sequelize';
 
 class UserRepository {
   constructor(userModel, roleModel) {
@@ -12,7 +12,7 @@ class UserRepository {
       where: { email },
       include: {
         model: this.roleModel,
-        as: 'role', // Use the alias here
+        as: 'role',
       },
     });
   }
@@ -25,9 +25,12 @@ class UserRepository {
     return await this.userModel.findByPk(id, {
       include: {
         model: this.roleModel,
-        as: 'role', // Use the alias here
+        as: 'role',
       },
     });
+  }
+  async getUserByVerificationToken(verificationToken) {
+    return await this.userModel.findOne({ where: { verificationToken } });
   }
 
   async createUser(data) {
@@ -66,4 +69,4 @@ class UserRepository {
   }
 }
 
-module.exports = UserRepository;
+export default UserRepository;

@@ -1,39 +1,57 @@
 // ptilms-api/middlewares/errorMiddleware.js
-const { ValidationError, UnauthorizedError, BadRequestError, NotFoundError, ConflictError } = require('../utils/errors');
-const logger = require('../utils/logger');
+import {
+  ValidationError,
+  UnauthorizedError,
+  BadRequestError,
+  NotFoundError,
+  ConflictError,
+  BaseError,
+} from '../utils/errors.js';
+import { error as _error } from '../utils/logger.js';
+
+// Correctly import jsonwebtoken as a CommonJS module
+import jsonwebtoken from 'jsonwebtoken';
+
+// Destructure the needed properties
+const { JsonWebTokenError, TokenExpiredError } = jsonwebtoken;
 
 const errorHandler = (err, req, res, next) => {
   let statusCode = 500;
   let message = 'Internal Server Error';
   let errors;
 
-  if (err instanceof ValidationError) {
-    statusCode = 400;
-    message = 'Validation Error';
-    errors = err.errors;
-  } else if (err instanceof UnauthorizedError) {
-    statusCode = 401;
-    message = err.message || 'Unauthorized';
-  } else if (err instanceof BadRequestError) {
-    statusCode = 400;
-    message = err.message || 'Bad Request';
-  } else if (err instanceof NotFoundError) {
-    statusCode = 404;
-    message = err.message || 'Not Found';
-  } else if (err instanceof ConflictError) {
-    statusCode = 409;
-    message = err.message || 'Conflict';
+  if (err instanceof BaseError) {
+    statusCode = err.statusCode;
+    message = err.message;
+    if (err.errors) {
+      errors = err.errors;
+    }
   } else if (err.name === 'SequelizeValidationError') {
     statusCode = 400;
     message = 'Database Validation Error';
-    errors = err.errors.map(e => ({ field: e.path, message: e.message }));
+    errors = err.errors.map((e) => ({ field: e.path, message: e.message }));
   } else if (err.name === 'SequelizeUniqueConstraintError') {
     statusCode = 409;
     message = 'Database Unique Constraint Error';
-    errors = err.errors.map(e => ({ field: e.path, message: e.message }));
+    errors = err.errors.map((e) => ({ field: e.path, message: e.message }));
+  } else if (err instanceof JsonWebTokenError) {
+    statusCode = 401;
+    message = 'Invalid token';
+  } else if (err instanceof TokenExpiredError) {
+    statusCode = 401;
+    message = 'Token expired';
+  } else if (err.code === 'LIMIT_FILE_SIZE') {
+    statusCode = 400;
+    message = 'File size too large. Max size is 5MB';
+  } else if (err.message === 'Invalid file type. Only PDF, JPEG, and PNG are allowed.') {
+    statusCode = 400;
+    message = err.message;
+  } else if (err.message === 'No file uploaded') {
+    statusCode = 400;
+    message = err.message;
   } else {
-    logger.error(`Unhandled error: ${err.message}`);
-    logger.error(err.stack);
+    _error(`Unhandled error: ${err.message}`);
+    _error(err.stack);
   }
 
   // Add error details in development
@@ -43,11 +61,11 @@ const errorHandler = (err, req, res, next) => {
       code: statusCode,
       message,
       ...(errors && { details: errors }),
-      ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
-    }
+      ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+    },
   };
 
   res.status(statusCode).json(response);
 };
 
-module.exports = { errorHandler };
+export default { errorHandler };

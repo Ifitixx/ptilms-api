@@ -1,7 +1,7 @@
 // ptilms-api/models/Role.js
-const { Model, DataTypes } = require('sequelize');
+import { Model, DataTypes } from 'sequelize';
 
-module.exports = (sequelize) => {
+export default (sequelize) => {
   class Role extends Model {
     static associate(models) {
       Role.hasMany(models.User, {
@@ -19,7 +19,7 @@ module.exports = (sequelize) => {
   Role.init(
     {
       id: {
-        type: DataTypes.UUID, // Change to UUID
+        type: DataTypes.UUID, 
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
       },

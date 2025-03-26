@@ -34,4 +34,4 @@ class RoleRepository {
     }
   }
   
-  module.exports = RoleRepository;
+  export default RoleRepository;

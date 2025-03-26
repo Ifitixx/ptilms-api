@@ -1,11 +1,13 @@
 // ptilms-api/utils/tokenBlacklist.js
-const Redis = require('ioredis');
-const config = require('../config/config');
-const logger = require('./logger');
+import Redis from 'ioredis';
+import config from '../config/config.cjs'; // Correct: Default import
+import logger from './logger.js';
 
-const redis = new Redis(config.redis);
+const { redis: _redis } = config; // Correct: Destructure after default import
 
-const addToken = async (token, expiry) => {
+const redis = new Redis(_redis);
+
+export const addToken = async (token, expiry) => {
   try {
     await redis.set(token, 'blacklisted', 'EX', expiry);
   } catch (error) {
@@ -14,7 +16,7 @@ const addToken = async (token, expiry) => {
   }
 };
 
-const isBlacklisted = async (token) => {
+export const isBlacklisted = async (token) => {
   try {
     const result = await redis.get(token);
     return result === 'blacklisted';
@@ -23,5 +25,3 @@ const isBlacklisted = async (token) => {
     throw error;
   }
 };
-
-module.exports = { addToken, isBlacklisted };

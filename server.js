@@ -1,139 +1,138 @@
 // ptilms-api/server.js
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const swaggerUi = require('swagger-ui-express');
-const swaggerSpec = require('./swagger');
-const config = require('./config/config');
-const logger = require('./utils/logger');
-const { errorHandler } = require('./middlewares/errorMiddleware');
-const dbConfig = require('./config/database');
-const { Sequelize } = require('sequelize');
-const { UnauthorizedError } = require('./utils/errors');
+import 'dotenv/config';
+import express, { json } from 'express';
+import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './swagger.js';
+import config from './config/config.cjs';
+const { env, jwt, database, redis, cors: _cors, port } = config;
+import logger from './utils/logger.js';
+import errorMiddleware from './middlewares/errorMiddleware.js';
+import { ROLE_NAMES } from './config/constants.mjs';
+import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
+import initializeContainer from './container.js';
+import models from './models/index.js';
+
+const { info, error: _error } = logger;
 
 // Log environment and configuration details
-logger.info(`Environment: ${config.env}`);
-logger.info(`JWT Secrets: Access[${config.jwt.secret?.substring(0, 5)}...], Refresh[${config.jwt.refreshSecret?.substring(0, 5)}...]`);
-logger.info(`Database: ${config.database.url}`);
-logger.info(`Redis: ${config.redis.host}:${config.redis.port}`);
-
-// Check if JWT_SECRET and JWT_REFRESH_SECRET are set
-try {
-  if (!config.jwt.secret) {
-    logger.error('Error: JWT_SECRET environment variable is not set.');
-    throw new UnauthorizedError('JWT_SECRET environment variable is not set.');
-  } else {
-    logger.info('JWT_SECRET environment variable is set.');
-  }
-
-  if (!config.jwt.refreshSecret) {
-    logger.error('Error: JWT_REFRESH_SECRET environment variable is not set.');
-    throw new UnauthorizedError('JWT_REFRESH_SECRET environment variable is not set.');
-  } else {
-    logger.info('JWT_REFRESH_SECRET environment variable is set.');
-  }
-} catch (error) {
-  logger.error(`Application failed to start: ${error.message}`);
-  process.exit(1); // Exit with an error code
-}
-
-// Models
-const RoleModel = require('./models/Role');
-const UserModel = require('./models/User');
-const RolePermissionModel = require('./models/RolePermission');
-const PermissionModel = require('./models/Permission');
-const { ROLES } = require('./config/constants');
-
-// Repositories
-const UserRepository = require('./repositories/UserRepository');
-const RoleRepository = require('./repositories/RoleRepository');
-
-// Services
-const AuthService = require('./services/AuthService');
-const UserService = require('./services/UserService');
-
-// Controllers
-const AuthController = require('./controllers/authController');
-const UserController = require('./controllers/userController');
+info(`Environment: ${env}`);
+info(`JWT Secrets: Access[${jwt.secret?.substring(0, 5)}...], Refresh[${jwt.refreshSecret?.substring(0, 5)}...]`);
+info(`Database: ${database.url}`);
+info(`Redis: ${redis.host}:${redis.port}`);
 
 // Routes
-const authRoutes = require('./routes/auth');
-const userRoutes = require('./routes/users');
+import authRoutes from './routes/auth.js';
+import userRoutes from './routes/users.js';
+import courseRoutes from './routes/courses.js';
+import assignmentRoutes from './routes/assignments.js';
+import announcementRoutes from './routes/announcements.js';
+import chatRoutes from './routes/chats.js';
+import chatMessageRoutes from './routes/chatMessages.js';
+import departmentRoutes from './routes/departments.js';
+import levelRoutes from './routes/levels.js';
+import permissionsRoutes from './routes/permissions.js';
+import rolesRoutes from './routes/roles.js';
+import rolePermissionsRoutes from './routes/rolePermissions.js';
+import courseMaterialRoutes from './routes/courseMaterials.js';
 
 const app = express();
 
 // Middleware
 app.use(cors({
-  origin: config.cors.origins,
-  methods: config.cors.methods,
+  origin: _cors.origins,
+  methods: _cors.methods,
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   exposedHeaders: ['Authorization', 'X-Refresh-Token'],
   credentials: true
 }));
 
-// Body parser middleware MUST be before routes
-app.use(express.json());
-
-// Database Setup
-const env = process.env.NODE_ENV || 'development';
-const db = new Sequelize(dbConfig[env]);
-
-// Initialize Models
-const Role = RoleModel(db);
-const User = UserModel(db);
-const RolePermission = RolePermissionModel(db);
-const Permission = PermissionModel(db);
-
-// Define Associations
-const models = { Role, User, RolePermission, Permission };
-Object.keys(models).forEach((modelName) => {
-  if (models[modelName].associate) {
-    models[modelName].associate(models);
-  }
-});
+app.use(json());
 
 // Database Synchronization
 (async () => {
   try {
-    await db.authenticate(); // Test the connection
-    await db.sync({ force: false }); // Set force to true to drop and recreate tables
-    logger.info('Database synchronized successfully.');
+    await models.sequelize.authenticate();
+    await models.sync();
+    info('Database synchronized successfully.');
 
-    // Check if roles exist, if not, create them
-    const existingRoles = await Role.findAll();
-    if (existingRoles.length === 0) {
-      await Role.bulkCreate(ROLES.map(role => ({ name: role })));
-      logger.info('Default roles created.');
-    }
+    // Create default roles only if needed
+    await createDefaultRoles(models.Role);
   } catch (error) {
-    logger.error('Error synchronizing database:', error);
+    _error('Error synchronizing database:', error);
+    process.exit(1);
   }
 })();
 
-// Repositories
-const userRepository = new UserRepository(User, Role);
-const roleRepository = new RoleRepository(Role);
+// Function to create default roles
+async function createDefaultRoles(Role) {
+  const existingRoles = await Role.findAll();
+  if (existingRoles.length === 0) {
+    try {
+      await Role.bulkCreate(ROLE_NAMES.map(role => ({ name: role })));
+      info('Default roles created.');
+    } catch (error) {
+      _error('Error creating default roles:', JSON.stringify(error));
+    }
+  }
+}
 
-// Services
-const authService = new AuthService({ userRepository, roleRepository });
-const userService = new UserService({ userRepository });
+// Initialize the container
+const container = initializeContainer(models);
 
-// Controllers
-const authController = new AuthController({ authService });
-const userController = new UserController({ userService });
+// Retrieve controllers from the container
+const {
+  userController,
+  authController,
+  announcementController,
+  assignmentController,
+  chatController,
+  chatMessageController,
+  courseController,
+  departmentController,
+  levelController,
+  permissionController,
+  roleController,
+  rolePermissionController,
+  courseMaterialController,
+} = container;
 
 // Routes
 app.use('/api/v1/auth', authRoutes(authController));
 app.use('/api/v1/users', userRoutes(userController));
+app.use('/api/v1/courses', courseRoutes({ courseController }));
+app.use('/api/v1/assignments', assignmentRoutes(assignmentController));
+app.use('/api/v1/announcements', announcementRoutes(announcementController));
+app.use('/api/v1/chats', chatRoutes(chatController));
+app.use('/api/v1/chat-messages', chatMessageRoutes(chatMessageController));
+app.use('/api/v1/departments', departmentRoutes(departmentController));
+app.use('/api/v1/levels', levelRoutes(levelController));
+app.use('/api/v1/permissions', permissionsRoutes(permissionController));
+app.use('/api/v1/roles', rolesRoutes(roleController));
+app.use('/api/v1/role-permissions', rolePermissionsRoutes(rolePermissionController));
+app.use('/api/v1/course-materials', courseMaterialRoutes(courseMaterialController));
 
 // Swagger Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Error Handling Middleware
-app.use(errorHandler);
+// Access errorHandler through the default export
+app.use(errorMiddleware.errorHandler);
+
+// Security Middleware
+app.use(helmet());
+
+// Rate limiting for API endpoints
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again after 15 minutes',
+});
+app.use('/api/', apiLimiter);
 
 // Start Server
-const PORT = config.port || 3000;
+const PORT = port || 3000;
 app.listen(PORT, () => {
-  logger.info(`Server is running on port ${PORT}`);
+  info(`Server is running on port ${PORT}`);
 });

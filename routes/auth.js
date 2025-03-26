@@ -1,13 +1,15 @@
 // ptilms-api/routes/auth.js
-const express = require('express');
-const { body } = require('express-validator');
-const { validate } = require('../middlewares/validationMiddleware');
-const { loginLimiter } = require('../middlewares/rateLimiter');
-const { USER_SELECTABLE_ROLES } = require('../config/constants');
-const logger = require('../utils/logger'); // Import the logger
+import { Router } from 'express';
+import { body } from 'express-validator';
+import validationMiddleware from '../middlewares/validationMiddleware.js';
+const { validate } = validationMiddleware;
+import _default from '../middlewares/rateLimiter.js';
+const { loginLimiter } = _default;
+import { USER_SELECTABLE_ROLES } from '../config/constants.mjs';
+import { info } from '../utils/logger.js';
 
-module.exports = (authController) => {
-  const router = express.Router();
+export default (authController) => {
+  const router = Router();
 
   /**
    * @swagger
@@ -131,7 +133,7 @@ module.exports = (authController) => {
         .notEmpty().withMessage('Refresh token cannot be empty')
     ]),
     (req, res, next) => {
-      logger.info('Refresh token endpoint hit');
+      info('Refresh token endpoint hit');
       authController.refreshToken(req, res, next);
     }
   );

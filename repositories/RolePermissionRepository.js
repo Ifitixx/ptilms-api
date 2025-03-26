@@ -21,4 +21,4 @@ class RolePermissionRepository {
     }
   }
   
-  module.exports = RolePermissionRepository;
+  export default RolePermissionRepository;

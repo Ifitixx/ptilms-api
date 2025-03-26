@@ -1,12 +1,39 @@
 // ptilms-api/routes/users.js
-const express = require('express');
-const { param, body, query } = require('express-validator');
-const { authenticateToken, authorizeRole } = require('../middlewares/authMiddleware');
-const { validate } = require('../middlewares/validationMiddleware');
+import { Router } from 'express';
+import { param, body, query } from 'express-validator';
+import authMiddleware from '../middlewares/authMiddleware.js';
+const { authenticateToken, authorizeRole } = authMiddleware;
+import validationMiddleware from '../middlewares/validationMiddleware.js';
+const { validate } = validationMiddleware;
 
-const router = express.Router();
+const router = Router();
 
-module.exports = (controller) => {
+export default (userController) => {
+  /**
+   * @swagger
+   * /users:
+   *   get:
+   *     summary: Get all users
+   *     tags: [Users]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Users found
+   *       401:
+   *         description: Unauthorized
+   *       403:
+   *         description: Forbidden
+   *       500:
+   *         description: Internal server error
+   */
+  router.get(
+    '/',
+    authenticateToken,
+    authorizeRole(['admin']),
+    (req, res, next) => userController.getAllUsers(req, res, next)
+  );
+
   /**
    * @swagger
    * /users/{userId}:
@@ -39,11 +66,11 @@ module.exports = (controller) => {
   router.get(
     '/:userId',
     authenticateToken,
-    authorizeRole(['admin', 'lecturer', 'student']), // Corrected role name
+    authorizeRole(['admin', 'lecturer', 'student']),
     validate([
       param('userId').isUUID().withMessage('Invalid user ID format'),
     ]),
-    controller.getUserById.bind(controller)
+    (req, res, next) => userController.getUserById(req, res, next)
   );
 
   /**
@@ -95,7 +122,7 @@ module.exports = (controller) => {
       body('username').optional().trim().isLength({ min: 3, max: 50 }).withMessage('Username must be between 3 and 50 characters'),
       body('email').optional().trim().isEmail().withMessage('Invalid email format'),
     ]),
-    controller.updateUser.bind(controller)
+    (req, res, next) => userController.updateUser(req, res, next)
   );
 
   /**
@@ -141,14 +168,14 @@ module.exports = (controller) => {
   router.put(
     '/:userId/change-password',
     authenticateToken,
-    authorizeRole(['admin', 'lecturer', 'student']), // Corrected role name
+    authorizeRole(['admin', 'lecturer', 'student']),
     validate([
       param('userId').isUUID().withMessage('Invalid user ID format'),
       body('currentPassword').trim().notEmpty().withMessage('Current password is required'),
       body('newPassword').trim().notEmpty().withMessage('New password is required').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
         .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/).withMessage('Password must contain at least 8 characters, one uppercase, one lowercase, one number and one special character'),
     ]),
-    controller.changePassword.bind(controller)
+    (req, res, next) => userController.changePassword(req, res, next)
   );
 
   /**
@@ -187,7 +214,7 @@ module.exports = (controller) => {
     validate([
       param('userId').isUUID().withMessage('Invalid user ID format'),
     ]),
-    controller.deleteUser.bind(controller)
+    (req, res, next) => userController.deleteUser(req, res, next)
   );
 
   /**
@@ -225,7 +252,7 @@ module.exports = (controller) => {
     validate([
       query('since').isISO8601().withMessage('Invalid date format for "since" parameter'),
     ]),
-    controller.getModifiedUsers.bind(controller)
+    (req, res, next) => userController.getModifiedUsers(req, res, next)
   );
 
   return router;

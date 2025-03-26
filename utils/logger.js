@@ -1,22 +1,31 @@
 // ptilms-api/utils/logger.js
-const winston = require('winston');
-
-const logger = winston.createLogger({
+import { createLogger, format as _format, transports as _transports } from 'winston';
+    
+const logger = createLogger({
   level: 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
+  format: _format.combine(
+    _format.timestamp(),
+    _format.json()
   ),
   transports: [
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
+    new _transports.Console({
+      format: _format.combine(
+        _format.colorize(),
+        _format.simple()
       ),
     }),
-    new winston.transports.File({ filename: 'error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'combined.log' }),
+    new _transports.File({ filename: 'error.log', level: 'error' }),
+    new _transports.File({ filename: 'combined.log' }),
   ],
 });
 
-module.exports = logger;
+// Export error and info functions
+export const error = (message) => {
+  logger.error(message);
+};
+
+export const info = (message) => {
+  logger.info(message);
+};
+
+export default logger;

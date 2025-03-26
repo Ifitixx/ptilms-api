@@ -30,4 +30,4 @@ class PermissionRepository {
     }
   }
   
-  module.exports = PermissionRepository;
+  export default PermissionRepository;
