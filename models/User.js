@@ -1,8 +1,8 @@
 // ptilms-api/models/User.js
 import { Model, DataTypes } from 'sequelize';
 import { compare, genSalt, hash } from 'bcrypt';
-import config from '../config/config.cjs'; 
-const { saltRounds } = config; 
+import config from '../config/config.cjs';
+const { saltRounds } = config;
 import {
   USER_USERNAME_MAX_LENGTH,
   USER_USERNAME_MIN_LENGTH,
@@ -10,7 +10,7 @@ import {
   USER_PASSWORD_REGEX,
   USER_PASSWORD_MIN_LENGTH,
   USER_SEX_ENUM,
-} from '../config/constants.mjs'; 
+} from '../config/constants.mjs';
 
 export default (sequelize) => {
   class User extends Model {
@@ -18,7 +18,7 @@ export default (sequelize) => {
       User.belongsTo(models.Role, {
         foreignKey: 'roleId',
         as: 'role',
-        onDelete: 'SET NULL',
+        onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
       User.hasMany(models.Announcement, {
@@ -30,7 +30,7 @@ export default (sequelize) => {
       User.hasMany(models.ChatMessage, {
         foreignKey: 'senderId',
         as: 'messages',
-        onDelete: 'SET NULL', 
+        onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
     }
@@ -50,6 +50,11 @@ export default (sequelize) => {
 
   User.init(
     {
+      id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true,
+      },
       username: {
         type: DataTypes.STRING(USER_USERNAME_MAX_LENGTH),
         unique: true,
@@ -73,7 +78,7 @@ export default (sequelize) => {
           isStrongPassword(value) {
             if (!USER_PASSWORD_REGEX.test(value)) {
               throw new Error(
-                `Password must contain at least ${USER_PASSWORD_MIN_LENGTH} characters, one uppercase, one lowercase, one number and one special character`
+                `Password must contain at least ${USER_PASSWORD_MIN_LENGTH} characters, one uppercase, one lowercase, one number, and one special character`
               );
             }
           },
@@ -81,17 +86,19 @@ export default (sequelize) => {
       },
       roleId: {
         type: DataTypes.UUID,
-        allowNull: true, 
+        allowNull: true,
+        references: {
+          model: 'Roles',
+          key: 'id',
+        },
       },
       phoneNumber: {
         type: DataTypes.STRING,
         allowNull: true,
-        field: 'phone_number',
       },
       dateOfBirth: {
         type: DataTypes.DATE,
         allowNull: true,
-        field: 'date_of_birth',
       },
       sex: {
         type: DataTypes.ENUM(...USER_SEX_ENUM),
@@ -100,12 +107,10 @@ export default (sequelize) => {
       profilePictureUrl: {
         type: DataTypes.STRING,
         allowNull: true,
-        field: 'profile_picture_url',
       },
       lastLogin: {
         type: DataTypes.DATE,
         allowNull: true,
-        field: 'last_login',
       },
       isVerified: {
         type: DataTypes.BOOLEAN,

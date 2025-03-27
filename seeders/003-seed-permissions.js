@@ -11,11 +11,12 @@ export default {
       Object.values(PERMISSIONS).map((permissionName) => ({
         id: uuidv4(),
         name: permissionName,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
       }))
     );
   },
+
   async down(queryInterface, Sequelize) {
     await queryInterface.bulkDelete('Permissions', null, {});
   },

@@ -1,14 +1,14 @@
 // ptilms-api/models/CourseMaterial.js
 import { COURSES_MATERIAL_TYPES } from '../config/constants.mjs';
 import { DataTypes } from 'sequelize';
-import { v4 as uuidv4 } from 'uuid';
+
 
 export default (sequelize) => {
   const CourseMaterial = sequelize.define('CourseMaterial', {
     id: {
         type: DataTypes.UUID,
         primaryKey: true,
-        defaultValue: () => uuidv4(),
+        defaultValue: DataTypes.UUIDV4,
     },
     title: {
       type: DataTypes.STRING,

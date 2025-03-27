@@ -42,10 +42,10 @@ export default {
       Object.values(constants.PERMISSIONS).forEach((permission) => {
         rolePermissionsToInsert.push({
           id: uuidv4(),
-          roleId: adminRoleId,
-          permissionId: findPermissionId(permission),
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          role_id: adminRoleId,
+          permission_id: findPermissionId(permission),
+          created_at: new Date(),
+          updated_at: new Date(),
         });
       });
 
@@ -83,10 +83,10 @@ export default {
       lecturerPermissions.forEach((permission) => {
         rolePermissionsToInsert.push({
           id: uuidv4(),
-          roleId: lecturerRoleId,
-          permissionId: findPermissionId(permission),
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          role_id: lecturerRoleId,
+          permission_id: findPermissionId(permission),
+          created_at: new Date(),
+          updated_at: new Date(),
         });
       });
 
@@ -103,10 +103,10 @@ export default {
       studentPermissions.forEach((permission) => {
         rolePermissionsToInsert.push({
           id: uuidv4(),
-          roleId: studentRoleId,
-          permissionId: findPermissionId(permission),
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          role_id: studentRoleId,
+          permission_id: findPermissionId(permission),
+          created_at: new Date(),
+          updated_at: new Date(),
         });
       });
 
@@ -119,9 +119,11 @@ export default {
       await transaction.commit();
     } catch (error) {
       await transaction.rollback();
+      console.error('Error seeding role permissions:', error.message);
       throw error;
     }
   },
+
   async down(queryInterface, Sequelize) {
     await queryInterface.bulkDelete('RolePermissions', null, {});
   },

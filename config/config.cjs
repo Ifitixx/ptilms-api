@@ -32,6 +32,12 @@ module.exports = {
     port: process.env.DB_PORT,
     username: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
+    define: {
+      underscored: true,      // Converts camelCase to snake_case
+      timestamps: true,       // Enables `created_at` and `updated_at` by default
+      createdAt: 'created_at', // Custom name for the "created at" column
+      updatedAt: 'updated_at', // Custom name for the "updated at" column
+    }
   },
   redis: {
     host: process.env.REDIS_HOST || 'localhost',

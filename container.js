@@ -24,6 +24,7 @@ import LevelService from './services/LevelService.js';
 import PermissionService from './services/PermissionService.js';
 import RolePermissionService from './services/RolePermissionService.js';
 import CourseMaterialService from './services/CourseMaterialService.js';
+import EmailService from './services/emailService.js';
 
 import AuthController from './controllers/authController.js';
 import UserController from './controllers/userController.js';
@@ -40,15 +41,15 @@ import RolePermissionController from './controllers/RolePermissionController.js'
 import CourseMaterialController from './controllers/CourseMaterialController.js';
 
 // This function will be called in server.js to initialize the container
-export default function initializeContainer(models) {
-  const { Role, User, Course, Assignment, Announcement, Chat, ChatMessage, Department, Level, Permission, RolePermission, CourseMaterial } = models;
+export default function initializeContainer(db) {
+  const { Role, User, Course, Assignment, Announcement, Chat, ChatMessage, Department, Level, Permission, RolePermission, CourseMaterial } = db.models;
 
   // Repositories
   const roleRepository = new RoleRepository(Role);
-  const userRepository = new UserRepository(User, Role);
+  const userRepository = new UserRepository(db.models); // Pass db.models
   const courseRepository = new CourseRepository(Course);
   const assignmentRepository = new AssignmentRepository(Assignment);
-  const announcementRepository = new AnnouncementRepository(Announcement);
+  const announcementRepository = new AnnouncementRepository(Announcement, Course, User, Department, Level);
   const chatRepository = new ChatRepository(Chat);
   const chatMessageRepository = new ChatMessageRepository(ChatMessage);
   const departmentRepository = new DepartmentRepository(Department);
@@ -58,7 +59,8 @@ export default function initializeContainer(models) {
   const courseMaterialRepository = new CourseMaterialRepository(CourseMaterial);
 
   // Services
-  const authService = new AuthService({ userRepository, roleRepository });
+  const emailService = new EmailService();
+  const authService = new AuthService({ userRepository, roleRepository, emailService });
   const userService = new UserService({ userRepository });
   const courseService = new CourseService({ courseRepository });
   const assignmentService = new AssignmentService({ assignmentRepository });

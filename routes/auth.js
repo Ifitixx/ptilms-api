@@ -62,6 +62,30 @@ export default (authController) => {
     (req, res, next) => authController.registerUser(req, res, next)
   );
 
+  // ... other routes ...
+  /**
+   * @swagger
+   * /api/v1/auth/verify/{token}:
+   *   get:  # Or it could be a POST, depending on how your frontend handles it.  GET is more typical for email links.
+   *     summary: Verify a user's email address
+   *     tags: [Auth]
+   *     parameters:
+   *       - in: path
+   *         name: token
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: The verification token
+   *     responses:
+   *       200:
+   *         description: User verified successfully
+   *       400:
+   *         description: Bad request (e.g., missing token)
+   *       401:
+   *         description: Unauthorized (e.g., invalid or expired token)
+   */
+  router.get('/verify/:token', (req, res, next) => authController.verifyUser(req, res, next));
+
   /**
    * @swagger
    * /api/v1/auth/login:

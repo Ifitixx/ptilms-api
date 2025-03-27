@@ -25,10 +25,10 @@ export default {
         id: uuidv4(),
         title: assignment.title,
         description: assignment.description,
-        dueDate: new Date(Date.now() + assignment.dueInDays * 24 * 60 * 60 * 1000),
-        courseId: findCourseId(assignment.courseCode),
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        due_date: new Date(Date.now() + assignment.dueInDays * 24 * 60 * 60 * 1000),
+        course_id: findCourseId(assignment.courseCode),
+        created_at: new Date(),
+        updated_at: new Date(),
       }));
 
       await queryInterface.bulkInsert('Assignments', assignmentsToInsert, { transaction });

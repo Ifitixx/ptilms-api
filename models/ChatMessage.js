@@ -13,7 +13,7 @@ export default (sequelize) => {
       ChatMessage.belongsTo(models.User, {
         foreignKey: 'senderId',
         as: 'sender',
-        onDelete: 'SET NULL', 
+        onDelete: 'CASCADE', 
         onUpdate: 'CASCADE',
       });
     }
@@ -36,7 +36,7 @@ export default (sequelize) => {
       },
       senderId: {
         type: DataTypes.UUID,
-        allowNull: true, // Changed to true
+        allowNull: true, 
       },
     },
     {

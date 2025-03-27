@@ -40,10 +40,10 @@ export default {
         code: course.code,
         format: course.format,
         description: course.description,
-        departmentId: findDepartmentId(course.department),
-        levelId: findLevelId(course.level),
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        department_id: findDepartmentId(course.department),
+        level_id: findLevelId(course.level),
+        created_at: new Date(),
+        updated_at: new Date(),
       }));
 
       await queryInterface.bulkInsert('Courses', coursesToInsert, { transaction });

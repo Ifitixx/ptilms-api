@@ -38,10 +38,10 @@ export default {
       const chatMessagesToInsert = constants.CHAT_MESSAGES.map((message) => ({
         id: uuidv4(),
         content: message.content,
-        userId: findUserId(),
-        chatId: findChatId(message.chatName),
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        user_id: findUserId(),
+        chat_id: findChatId(message.chatName),
+        created_at: new Date(),
+        updated_at: new Date(),
       }));
 
       await queryInterface.bulkInsert('ChatMessages', chatMessagesToInsert, { transaction });

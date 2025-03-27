@@ -9,8 +9,8 @@ export default {
       ROLE_NAMES.map((roleName) => ({
         id: uuidv4(),
         name: roleName,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
       }))
     );
   },

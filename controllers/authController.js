@@ -58,6 +58,8 @@ class AuthController {
         next(new InvalidCredentialsError());
       } else if (error.message === 'User not found') {
         next(new UserNotFoundError());
+      } else if (error.message === 'User is not verified') {
+        next(new UnauthorizedError('Please verify your email before logging in.')); // Specific error for unverified users
       } else {
         logger.error(`Error in loginUser: ${error.message}`);
         next(error);

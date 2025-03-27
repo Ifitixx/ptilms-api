@@ -2,12 +2,13 @@
 import { DataTypes } from 'sequelize';
 
 export default {
-  async up(queryInterface, Sequelize) {
+  async up(queryInterface) {
     await queryInterface.createTable('Courses', {
       id: {
+        allowNull: false,
+        primaryKey: true,
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
-        primaryKey: true,
       },
       title: {
         type: DataTypes.STRING,
@@ -26,39 +27,39 @@ export default {
         type: DataTypes.TEXT,
         allowNull: true,
       },
-      departmentId: {
+      department_id: {
         type: DataTypes.UUID,
         references: {
           model: 'Departments',
           key: 'id',
         },
         onUpdate: 'CASCADE',
-        onDelete: 'SET NULL',
+        onDelete: 'CASCADE',
       },
-      levelId: {
+      level_id: {
         type: DataTypes.UUID,
         references: {
           model: 'Levels',
           key: 'id',
         },
         onUpdate: 'CASCADE',
-        onDelete: 'SET NULL',
+        onDelete: 'CASCADE',
       },
-      createdAt: {
+      created_at: {
         allowNull: false,
         type: DataTypes.DATE,
       },
-      updatedAt: {
+      updated_at: {
         allowNull: false,
         type: DataTypes.DATE,
       },
-      deletedAt: {
+      deleted_at: {
         type: DataTypes.DATE,
         allowNull: true,
       },
     });
   },
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     await queryInterface.dropTable('Courses');
   },
 };

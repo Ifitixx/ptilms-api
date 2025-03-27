@@ -1,9 +1,9 @@
 // ptilms-api/migrations/012-create-course-material.js
 import { DataTypes } from 'sequelize';
-import * as constants from '../config/constants.mjs';
+import { COURSES_MATERIAL_TYPES } from '../config/constants.mjs';
 
 export default {
-  async up(queryInterface, Sequelize) {
+  async up(queryInterface) {
     await queryInterface.createTable('CourseMaterials', {
       id: {
         allowNull: false,
@@ -17,40 +17,41 @@ export default {
       },
       description: {
         type: DataTypes.TEXT,
+        allowNull: true,
       },
       type: {
-        type: DataTypes.ENUM(...Object.values(constants.COURSES_MATERIAL_TYPES)),
+        type: DataTypes.ENUM(...Object.values(COURSES_MATERIAL_TYPES)),
         allowNull: false,
       },
       path: {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      courseId: {
+      course_id: {
         type: DataTypes.UUID,
         allowNull: false,
         references: {
           model: 'Courses',
           key: 'id',
         },
-        onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
       },
-      createdAt: {
+      created_at: {
         allowNull: false,
         type: DataTypes.DATE,
       },
-      updatedAt: {
+      updated_at: {
         allowNull: false,
         type: DataTypes.DATE,
       },
-      deletedAt: {
+      deleted_at: {
         type: DataTypes.DATE,
+        allowNull: true,
       },
     });
   },
-
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     await queryInterface.dropTable('CourseMaterials');
   },
 };

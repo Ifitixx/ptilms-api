@@ -32,7 +32,9 @@ export default (sequelize) => {
     {
       sequelize,
       modelName: 'Role',
-      tableName: 'Roles',
+      tableName: 'roles',
+      timestamps: true,
+      underscored: true,
       paranoid: true,
     }
   );

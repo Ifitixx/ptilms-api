@@ -1,4 +1,3 @@
-// ptilms-api/seeders/002-seed-users.js
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
 import * as constants from '../config/constants.mjs';
@@ -8,72 +7,80 @@ const { saltRounds } = config;
 
 export default {
   async up(queryInterface, Sequelize) {
-    // Fetch the roles from the database
-    const roles = await queryInterface.sequelize.query(
-      'SELECT id, name FROM Roles',
-      { type: queryInterface.sequelize.QueryTypes.SELECT }
-    );
+    try {
+      // Fetch the roles from the database
+      const roles = await queryInterface.sequelize.query(
+        'SELECT id, name FROM Roles',
+        { type: queryInterface.sequelize.QueryTypes.SELECT }
+      );
 
-    // Check if the roles were found
-    if (roles.length === 0) {
-      console.error('No roles found in the database. Please seed roles first.');
-      return;
+      if (roles.length === 0) {
+        throw new Error('No roles found in the database. Please seed roles before running this seeder.');
+      }
+
+      // Find the role IDs for 'Admin' and 'Student'
+      const adminRole = roles.find((role) => role.name === constants.ROLES.ADMIN);
+      const studentRole = roles.find((role) => role.name === constants.ROLES.STUDENT);
+
+      if (!adminRole || !studentRole) {
+        throw new Error(
+          'Admin or Student role not found in the database. Ensure roles are seeded and constants.mjs is correct.'
+        );
+      }
+
+      // Use environment variables for sensitive data
+      const adminPassword = process.env.ADMIN_PASSWORD || 'DefaultAdmin123!';
+      const studentPassword = process.env.STUDENT_PASSWORD || 'DefaultStudent123!';
+
+      // Hash passwords
+      const hashedAdminPassword = await bcrypt.hash(adminPassword, saltRounds);
+      const hashedStudentPassword = await bcrypt.hash(studentPassword, saltRounds);
+
+      await queryInterface.bulkInsert(
+        'Users',
+        [
+          {
+            id: uuidv4(),
+            username: 'admin',
+            email: process.env.ADMIN_EMAIL || 'admin@example.com',
+            password: hashedAdminPassword,
+            role_id: adminRole.id,
+            phone_number: '+15551234567',
+            date_of_birth: new Date('1980-01-01'),
+            sex: constants.USER_SEX_ENUM[0], // Assuming 'Male'
+            profile_picture_url: 'https://example.com/profile/admin.jpg',
+            reset_token: null,
+            reset_token_expiry: null,
+            is_verified: true,
+            created_at: new Date(),
+            updated_at: new Date(),
+          },
+          {
+            id: uuidv4(),
+            username: 'student',
+            email: process.env.STUDENT_EMAIL || 'student@example.com',
+            password: hashedStudentPassword,
+            role_id: studentRole.id,
+            phone_number: '+15559876543',
+            date_of_birth: new Date('1995-05-20'),
+            sex: constants.USER_SEX_ENUM[1], // Assuming 'Female'
+            profile_picture_url: 'https://example.com/profile/student.jpg',
+            reset_token: null,
+            reset_token_expiry: null,
+            is_verified: true,
+            created_at: new Date(),
+            updated_at: new Date(),
+          },
+        ],
+        {}
+      );
+    } catch (error) {
+      console.error('Error seeding users:', error.message);
+      throw error;
     }
-
-    // Find the role IDs for 'Admin' and 'Student'
-    const adminRole = roles.find(role => role.name === constants.ROLES.ADMIN);
-    const studentRole = roles.find(role => role.name === constants.ROLES.STUDENT);
-
-    // Check if the roles were found
-    if (!adminRole || !studentRole) {
-      console.error('Admin or Student role not found in the database. Please check your role seed.');
-      return;
-    }
-
-    const hashedPassword = await bcrypt.hash('Password123!', saltRounds); // Hash the password
-
-    await queryInterface.bulkInsert('Users', [
-      {
-        id: uuidv4(), // Generate a UUID for the user
-        username: 'johndoe',
-        email: 'john.doe@example.com',
-        password: hashedPassword, // Store the hashed password
-        roleId: adminRole.id, // Use the actual admin role ID
-        phone_number: '+15551234567',
-        date_of_birth: new Date('1990-01-15'),
-        sex: constants.USER_SEX_ENUM[0], // Assuming the first value in the enum is 'Male'
-        profile_picture_url: 'https://example.com/profile/johndoe.jpg',
-        resetToken: null,
-        resetTokenExpiry: null,
-        lastLogin: null,
-        isVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        deletedAt: null,
-      },
-      {
-        id: uuidv4(), // Generate a UUID for the user
-        username: 'janesmith',
-        email: 'jane.smith@example.com',
-        password: hashedPassword, // Store the hashed password
-        roleId: studentRole.id, // Use the actual student role ID
-        phone_number: '+15559876543',
-        date_of_birth: new Date('1995-05-20'),
-        sex: constants.USER_SEX_ENUM[1], // Assuming the second value in the enum is 'Female'
-        profile_picture_url: 'https://example.com/profile/janesmith.jpg',
-        resetToken: null,
-        resetTokenExpiry: null,
-        lastLogin: null,
-        isVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        deletedAt: null,
-      },
-      // Add more user objects as needed
-    ], {});
   },
 
   async down(queryInterface, Sequelize) {
     await queryInterface.bulkDelete('Users', null, {});
-  }
+  },
 };

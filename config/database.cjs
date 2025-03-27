@@ -3,12 +3,8 @@ const { Sequelize } = require('sequelize');
 const config = require('./config.cjs');
 
 const sequelize = new Sequelize(config.database.url, {
-  logging: console.log,
-  define: {
-    paranoid: true,
-    underscored: true,
-    timestamps: true,
-  },
+  logging: console.log, // Enables query logging in development
+  ...config.database,  // Pass other database options, including `define`
 });
 
 module.exports = sequelize;

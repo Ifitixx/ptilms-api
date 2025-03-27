@@ -9,8 +9,8 @@ export default {
       constants.CHATS.map((chat) => ({
         id: uuidv4(),
         name: chat.name,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
       }))
     );
   },

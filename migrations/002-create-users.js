@@ -1,91 +1,87 @@
 // ptilms-api/migrations/002-create-users.js
 import { DataTypes } from 'sequelize';
-import * as constants from '../config/constants.mjs';
+import { USER_USERNAME_MAX_LENGTH, USER_EMAIL_MAX_LENGTH, USER_SEX_ENUM } from '../config/constants.mjs';
 
 export default {
-  up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable(
-      'Users',
-      {
-        id: {
-          allowNull: false,
-          primaryKey: true,
-          type: DataTypes.UUID,
-          defaultValue: DataTypes.UUIDV4,
-        },
-        username: {
-          type: DataTypes.STRING(constants.USER_USERNAME_MAX_LENGTH),
-          allowNull: false,
-          unique: true,
-        },
-        email: {
-          type: DataTypes.STRING(constants.USER_EMAIL_MAX_LENGTH),
-          allowNull: false,
-          unique: true,
-        },
-        password: {
-          type: DataTypes.STRING,
-          allowNull: false,
-        },
-        roleId: {
-          type: DataTypes.UUID,
-          allowNull: false,
-          references: {
-            model: 'Roles',
-            key: 'id',
-          },
-        },
-        phone_number: {
-          type: DataTypes.STRING,
-          allowNull: true,
-        },
-        date_of_birth: {
-          type: DataTypes.DATE,
-          allowNull: true,
-        },
-        sex: {
-          type: DataTypes.ENUM(...constants.USER_SEX_ENUM),
-          allowNull: true,
-        },
-        profile_picture_url: {
-          type: DataTypes.STRING,
-          allowNull: true,
-        },
-        resetToken: {
-          type: DataTypes.STRING,
-          allowNull: true,
-        },
-        resetTokenExpiry: {
-          type: DataTypes.DATE,
-          allowNull: true,
-        },
-        lastLogin: {
-          type: DataTypes.DATE,
-          allowNull: true,
-        },
-        isVerified: {
-          type: DataTypes.BOOLEAN,
-          defaultValue: false,
-        },
-        createdAt: {
-          allowNull: false,
-          type: DataTypes.DATE,
-        },
-        updatedAt: {
-          allowNull: false,
-          type: DataTypes.DATE,
-        },
-        deletedAt: {
-          type: DataTypes.DATE,
-          allowNull: true,
-        },
+  async up(queryInterface) {
+    await queryInterface.createTable('Users', {
+      id: {
+        allowNull: false,
+        primaryKey: true,
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
       },
-      {
-        underscored: true,
-      }
-    );
+      username: {
+        type: DataTypes.STRING(USER_USERNAME_MAX_LENGTH),
+        allowNull: false,
+        unique: true,
+      },
+      email: {
+        type: DataTypes.STRING(USER_EMAIL_MAX_LENGTH),
+        allowNull: false,
+        unique: true,
+      },
+      password: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      role_Id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+          model: 'Roles',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
+      },
+      phone_number: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      date_of_birth: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      sex: {
+        type: DataTypes.ENUM(...USER_SEX_ENUM),
+        allowNull: true,
+      },
+      profile_picture_url: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      reset_token: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      reset_token_expiry: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      last_login: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      is_verified: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
+      created_at: {
+        allowNull: false,
+        type: DataTypes.DATE,
+      },
+      updated_at: {
+        allowNull: false,
+        type: DataTypes.DATE,
+      },
+      deleted_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+    });
   },
-  down: async (queryInterface, Sequelize) => {
+  async down(queryInterface) {
     await queryInterface.dropTable('Users');
   },
 };

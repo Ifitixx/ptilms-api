@@ -53,12 +53,71 @@ app.use(json());
 // Database Synchronization
 (async () => {
   try {
-    await models.sequelize.authenticate();
-    await models.sync();
+    const db = await models;
+    await db.sequelize.authenticate();
+    await db.sequelize.sync();
     info('Database synchronized successfully.');
 
     // Create default roles only if needed
-    await createDefaultRoles(models.Role);
+    await createDefaultRoles(db.models.Role);
+    // Initialize the container
+    const container = initializeContainer(db); // Pass the entire models object
+
+    // Retrieve controllers from the container
+    const {
+      userController,
+      authController,
+      announcementController,
+      assignmentController,
+      chatController,
+      chatMessageController,
+      courseController,
+      departmentController,
+      levelController,
+      permissionController,
+      roleController,
+      rolePermissionController,
+      courseMaterialController,
+    } = container;
+
+    // Routes
+    app.use('/api/v1/auth', authRoutes(authController));
+    app.use('/api/v1/users', userRoutes(userController));
+    app.use('/api/v1/courses', courseRoutes(courseController));
+    app.use('/api/v1/assignments', assignmentRoutes(assignmentController));
+    app.use('/api/v1/announcements', announcementRoutes(announcementController));
+    app.use('/api/v1/chats', chatRoutes(chatController));
+    app.use('/api/v1/chat-messages', chatMessageRoutes(chatMessageController));
+    app.use('/api/v1/departments', departmentRoutes(departmentController));
+    app.use('/api/v1/levels', levelRoutes(levelController));
+    app.use('/api/v1/permissions', permissionsRoutes(permissionController));
+    app.use('/api/v1/roles', rolesRoutes(roleController));
+    app.use('/api/v1/role-permissions', rolePermissionsRoutes(rolePermissionController));
+    app.use('/api/v1/course-materials', courseMaterialRoutes(courseMaterialController));
+
+    // Swagger Documentation
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+    // Error Handling Middleware
+    // Access errorHandler through the default export
+    app.use(errorMiddleware.errorHandler);
+
+    // Security Middleware
+    app.use(helmet());
+
+    // Rate limiting for API endpoints
+    const apiLimiter = rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 100, // Limit each IP to 100 requests per windowMs
+      message: 'Too many requests from this IP, please try again after 15 minutes',
+    });
+    app.use('/api/', apiLimiter);
+
+    // Start Server
+    const PORT = port || 3000;
+    app.listen(PORT, () => {
+      info(`Server is running on port ${PORT}`);
+    });
   } catch (error) {
     _error('Error synchronizing database:', error);
     process.exit(1);
@@ -77,62 +136,3 @@ async function createDefaultRoles(Role) {
     }
   }
 }
-
-// Initialize the container
-const container = initializeContainer(models);
-
-// Retrieve controllers from the container
-const {
-  userController,
-  authController,
-  announcementController,
-  assignmentController,
-  chatController,
-  chatMessageController,
-  courseController,
-  departmentController,
-  levelController,
-  permissionController,
-  roleController,
-  rolePermissionController,
-  courseMaterialController,
-} = container;
-
-// Routes
-app.use('/api/v1/auth', authRoutes(authController));
-app.use('/api/v1/users', userRoutes(userController));
-app.use('/api/v1/courses', courseRoutes({ courseController }));
-app.use('/api/v1/assignments', assignmentRoutes(assignmentController));
-app.use('/api/v1/announcements', announcementRoutes(announcementController));
-app.use('/api/v1/chats', chatRoutes(chatController));
-app.use('/api/v1/chat-messages', chatMessageRoutes(chatMessageController));
-app.use('/api/v1/departments', departmentRoutes(departmentController));
-app.use('/api/v1/levels', levelRoutes(levelController));
-app.use('/api/v1/permissions', permissionsRoutes(permissionController));
-app.use('/api/v1/roles', rolesRoutes(roleController));
-app.use('/api/v1/role-permissions', rolePermissionsRoutes(rolePermissionController));
-app.use('/api/v1/course-materials', courseMaterialRoutes(courseMaterialController));
-
-// Swagger Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
-// Error Handling Middleware
-// Access errorHandler through the default export
-app.use(errorMiddleware.errorHandler);
-
-// Security Middleware
-app.use(helmet());
-
-// Rate limiting for API endpoints
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again after 15 minutes',
-});
-app.use('/api/', apiLimiter);
-
-// Start Server
-const PORT = port || 3000;
-app.listen(PORT, () => {
-  info(`Server is running on port ${PORT}`);
-});

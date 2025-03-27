@@ -1,6 +1,5 @@
 // ptilms-api/models/Course.js
 import { DataTypes } from 'sequelize';
-import { v4 as uuidv4 } from 'uuid';
 
 export default (sequelize) => {
   const Course = sequelize.define(
@@ -9,7 +8,7 @@ export default (sequelize) => {
       id: {
         type: DataTypes.UUID,
         primaryKey: true,
-        defaultValue: () => uuidv4(),
+        defaultValue: DataTypes.UUIDV4,
       },
       title: {
         type: DataTypes.STRING,
@@ -50,19 +49,19 @@ export default (sequelize) => {
   Course.associate = (models) => {
     Course.belongsTo(models.Department, {
       foreignKey: 'departmentId',
-      onDelete: 'NO ACTION',
+      onDelete: 'CASCADE',
       onUpdate: 'CASCADE',
     });
     Course.belongsTo(models.Level, {
       foreignKey: 'levelId',
-      onDelete: 'NO ACTION',
+      onDelete: 'CASCADE',
       onUpdate: 'CASCADE',
     });
     Course.belongsTo(models.User, {
       foreignKey: 'lecturerId',
-      onDelete: 'SET NULL',
+      onDelete: 'CASCADE',
       onUpdate: 'CASCADE',
-      as: 'lecturer'
+      as: 'lecturer',
     });
     Course.hasMany(models.Assignment, {
       foreignKey: 'courseId',

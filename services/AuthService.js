@@ -7,14 +7,19 @@ import config from '../config/config.cjs';
 const { jwt: _jwt, app } = config;
 import { addToken, isBlacklisted } from '../utils/tokenBlacklist.js';
 import { v4 as uuidv4 } from 'uuid';
-import { ROLES, USER_SELECTABLE_ROLES } from '../config/constants.mjs';
-import EmailService from './emailService.js';
+import { USER_SELECTABLE_ROLES } from '../config/constants.mjs';
 
 class AuthService {
-  constructor({ userRepository, roleRepository }) {
+  constructor({ userRepository, roleRepository, emailService }) { // Receive emailService
     this.userRepository = userRepository;
     this.roleRepository = roleRepository;
-    this.emailService = new EmailService();
+    this.emailService = emailService;
+  }
+
+  // Correctly implemented checkEmailExists
+  async checkEmailExists(email) {
+    const user = await this.userRepository.getUserByEmail(email);
+    return !!user; // Returns true if a user exists, false otherwise
   }
 
   async register(userData) {
@@ -22,10 +27,10 @@ class AuthService {
       let { email, username, password, role } = userData;
       role = role.toLowerCase();
 
-      // Check if the user already exists
-      const existingUser = await this.userRepository.findByEmailOrUsername(email, username);
-      if (existingUser) {
-        throw new ConflictError('User with this email or username already exists');
+      // Check if the user already exists (using the corrected method)
+      const emailExists = await this.checkEmailExists(email);
+      if (emailExists) {
+        throw new ConflictError('User with this email already exists');
       }
 
       // Validate the user-selected role (case-insensitive)

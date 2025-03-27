@@ -2,7 +2,7 @@
 import { DataTypes } from 'sequelize';
 
 export default {
-  async up(queryInterface, Sequelize) {
+  async up(queryInterface) {
     await queryInterface.createTable('ChatMessages', {
       id: {
         allowNull: false,
@@ -14,7 +14,7 @@ export default {
         type: DataTypes.TEXT,
         allowNull: false,
       },
-      userId: {
+      user_id: {
         type: DataTypes.UUID,
         allowNull: false,
         references: {
@@ -24,7 +24,7 @@ export default {
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE',
       },
-      chatId: {
+      chat_id: {
         type: DataTypes.UUID,
         allowNull: false,
         references: {
@@ -34,21 +34,21 @@ export default {
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE',
       },
-      createdAt: {
+      created_at: {
         allowNull: false,
         type: DataTypes.DATE,
       },
-      updatedAt: {
+      updated_at: {
         allowNull: false,
         type: DataTypes.DATE,
       },
-      deletedAt: {
+      deleted_at: {
         type: DataTypes.DATE,
         allowNull: true,
       },
     });
   },
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     await queryInterface.dropTable('ChatMessages');
   },
 };

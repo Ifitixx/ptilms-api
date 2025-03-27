@@ -38,7 +38,7 @@ export default (sequelize) => {
     {
       sequelize,
       modelName: 'RolePermission',
-      tableName: 'RolePermissions',
+      tableName: 'role_permissions',
       paranoid: true,
     }
   );

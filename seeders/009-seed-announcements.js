@@ -39,10 +39,10 @@ export default {
         id: uuidv4(),
         title: announcement.title,
         content: announcement.content,
-        userId: findUserId(),
-        courseId: findCourseId(), // Add courseId
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        user_id: findUserId(),
+        course_id: findCourseId(), 
+        created_at: new Date(),
+        updated_at: new Date(),
       }));
 
       await queryInterface.bulkInsert('Announcements', announcementsToInsert, { transaction });

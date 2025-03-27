@@ -9,8 +9,8 @@ export default {
       constants.LEVEL_NAMES.map((levelName) => ({
         id: uuidv4(),
         name: levelName,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
       }))
     );
   },

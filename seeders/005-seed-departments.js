@@ -9,8 +9,8 @@ export default {
       constants.DEPARTMENT_NAMES.map((departmentName) => ({
         id: uuidv4(),
         name: departmentName,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
       }))
     );
   },

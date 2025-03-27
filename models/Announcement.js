@@ -7,13 +7,13 @@ export default (sequelize) => {
       Announcement.belongsTo(models.User, {
         foreignKey: 'userId',
         as: 'user',
-        onDelete: 'SET NULL', 
+        onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
       Announcement.belongsTo(models.Course, {
         foreignKey: 'courseId',
         as: 'course',
-        onDelete: 'SET NULL', 
+        onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
     }
@@ -21,7 +21,7 @@ export default (sequelize) => {
 
   Announcement.init(
     {
-      id: { 
+      id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
