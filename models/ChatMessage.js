@@ -11,7 +11,7 @@ export default (sequelize) => {
         onUpdate: 'CASCADE',
       });
       ChatMessage.belongsTo(models.User, {
-        foreignKey: 'senderId',
+        foreignKey: 'userId',  
         as: 'sender',
         onDelete: 'CASCADE', 
         onUpdate: 'CASCADE',
@@ -34,16 +34,30 @@ export default (sequelize) => {
         type: DataTypes.TEXT,
         allowNull: false,
       },
-      senderId: {
+      userId: { 
         type: DataTypes.UUID,
-        allowNull: true, 
+        allowNull: false,
+      },
+      // Optional explicit timestamps (auto-added by Sequelize if configured)
+      created_at: {
+        type: DataTypes.DATE,
+        allowNull: false,
+      },
+      updated_at: {
+        type: DataTypes.DATE,
+        allowNull: false,
+      },
+      deleted_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
       },
     },
     {
       sequelize,
       modelName: 'ChatMessage',
-      tableName: 'chat_messages',
+      tableName: 'ChatMessages',
       paranoid: true,
+      timestamps: true,
     }
   );
 

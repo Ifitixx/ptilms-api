@@ -28,7 +28,7 @@ export default (sequelize) => {
         onUpdate: 'CASCADE',
       });
       User.hasMany(models.ChatMessage, {
-        foreignKey: 'senderId',
+        foreignKey: 'userId',
         as: 'messages',
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
@@ -117,6 +117,11 @@ export default (sequelize) => {
         defaultValue: false,
         allowNull: false,
       },
+      verificationToken: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true,
+      },
       resetToken: {
         type: DataTypes.STRING,
         allowNull: true,
@@ -124,6 +129,10 @@ export default (sequelize) => {
       resetTokenExpiry: {
         type: DataTypes.DATE,
         allowNull: true,
+      },
+      refreshTokenHash: {
+        type: DataTypes.STRING,
+        allowNull: false,
       },
     },
     {

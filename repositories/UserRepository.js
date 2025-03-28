@@ -47,7 +47,7 @@ class UserRepository {
   }
   async getUserByVerificationToken(verificationToken) {
     try {
-      return await this.userModel.findOne({ where: { verificationToken } });
+      return await this.userModel.findOne({ where: { verification_token: verificationToken } });
     } catch (error) {
       _error(`Error in getUserByVerificationToken: ${error.message}`);
       throw error;

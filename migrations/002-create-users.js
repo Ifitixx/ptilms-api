@@ -25,7 +25,7 @@ export default {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      role_Id: {
+      role_id: { 
         type: DataTypes.UUID,
         allowNull: true,
         references: {
@@ -35,11 +35,11 @@ export default {
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE',
       },
-      phone_number: {
+      phone_number: { 
         type: DataTypes.STRING,
         allowNull: true,
       },
-      date_of_birth: {
+      date_of_birth: { 
         type: DataTypes.DATE,
         allowNull: true,
       },
@@ -47,35 +47,48 @@ export default {
         type: DataTypes.ENUM(...USER_SEX_ENUM),
         allowNull: true,
       },
-      profile_picture_url: {
+      profile_picture_url: { 
         type: DataTypes.STRING,
         allowNull: true,
       },
-      reset_token: {
+      reset_token: { 
         type: DataTypes.STRING,
         allowNull: true,
       },
-      reset_token_expiry: {
+      reset_token_expiry: { 
         type: DataTypes.DATE,
         allowNull: true,
       },
-      last_login: {
+      refresh_token_hash: {
+        type: DataTypes.STRING,
+        allowNull: true, 
+      },
+      last_login: { 
         type: DataTypes.DATE,
         allowNull: true,
       },
-      is_verified: {
+      is_verified: { 
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
-      created_at: {
+      verification_token: {
+        type: DataTypes.STRING, 
+        allowNull: true,
+        unique: true, 
+      },
+      verification_token_expiry: {  
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      created_at: { 
         allowNull: false,
         type: DataTypes.DATE,
       },
-      updated_at: {
+      updated_at: { 
         allowNull: false,
         type: DataTypes.DATE,
       },
-      deleted_at: {
+      deleted_at: { 
         type: DataTypes.DATE,
         allowNull: true,
       },

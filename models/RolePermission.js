@@ -34,12 +34,26 @@ export default (sequelize) => {
         type: DataTypes.UUID,
         allowNull: false,
       },
+      // Optional explicit timestamps (Sequelize auto-adds these with your config)
+      created_at: {
+        type: DataTypes.DATE,
+        allowNull: false,
+      },
+      updated_at: {
+        type: DataTypes.DATE,
+        allowNull: false,
+      },
+      deleted_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
     },
     {
       sequelize,
       modelName: 'RolePermission',
-      tableName: 'role_permissions',
+      tableName: 'RolePermissions',
       paranoid: true,
+      timestamps: true,
     }
   );
 

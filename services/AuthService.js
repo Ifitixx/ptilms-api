@@ -8,6 +8,7 @@ const { jwt: _jwt, app } = config;
 import { addToken, isBlacklisted } from '../utils/tokenBlacklist.js';
 import { v4 as uuidv4 } from 'uuid';
 import { USER_SELECTABLE_ROLES } from '../config/constants.mjs';
+import bcrypt from 'bcrypt';
 
 class AuthService {
   constructor({ userRepository, roleRepository, emailService }) { // Receive emailService
@@ -103,8 +104,13 @@ class AuthService {
         _jwt.refreshSecret,
         { expiresIn: _jwt.refreshExpiry }
       );
+      // Hash the refresh token before storing it
+      const refreshTokenHash = await bcrypt.hash(refreshToken, 10); // Use a salt factor of 10
+      
+      // Update the user in the database with the hashed refresh token
+      await this.userRepository.updateUser(user.id, { refreshTokenHash });
 
-      return { accessToken, refreshToken, user };
+      return { accessToken, refreshToken, user }; // Return the plain text refresh token
     } catch (error) {
       _error(`Error in login: ${error.message}`);
       throw error;
@@ -123,6 +129,15 @@ class AuthService {
         throw new UnauthorizedError('Token revoked');
       }
 
+      // Compare the provided refresh token with the stored hash
+      if (!user.refreshTokenHash) {
+        throw new UnauthorizedError('Refresh token not found for user'); // Handle case where hash is missing
+      }
+      const isTokenValid = await bcrypt.compare(refreshToken, user.refreshTokenHash);
+      if (!isTokenValid) {
+        throw new UnauthorizedError('Invalid refresh token');
+      }
+
       // Generate new tokens
       const accessToken = sign(
         { userId: user.id, email: user.email, role: user.role?.name },
@@ -136,26 +151,30 @@ class AuthService {
         { expiresIn: _jwt.refreshExpiry }
       );
 
-      // Blacklist old refresh token
+      // Hash the new refresh token and update it in the database
+      const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, 10);
+      await this.userRepository.updateUser(user.id, { refreshTokenHash: newRefreshTokenHash });
+
+      // Blacklist old refresh token (optional, depending on your security requirements)
       const remainingTime = Math.floor((decoded.exp * 1000 - Date.now()) / 1000);
       if (remainingTime > 0) {
         await addToken(refreshToken, remainingTime);
       }
+
       // Calculate the expiration time (in seconds) for the access token
       const accessTokenExpiration = this.getAccessTokenExpirationInSeconds();
 
       return { accessToken, refreshToken: newRefreshToken, expires_in: accessTokenExpiration };
     } catch (error) {
-      _error(`Refresh Token Error: ${error.message}`);
-      if (error instanceof TokenExpiredError) {
-        throw new UnauthorizedError('Refresh token expired');
+        _error(`Error in refreshToken: ${error.message}`); // Log the error
+        if (error instanceof TokenExpiredError || error instanceof JsonWebTokenError) {
+          throw new UnauthorizedError('Invalid or expired refresh token');
+        } else {
+          throw error; // Re-throw other errors
+        }
       }
-      if (error instanceof JsonWebTokenError) {
-        throw new UnauthorizedError('Invalid refresh token');
-      }
-      throw error;
     }
-  }
+  
   getAccessTokenExpirationInSeconds() {
     const accessExpiry = _jwt.accessExpiry;
     const timeUnit = accessExpiry.slice(-1);
