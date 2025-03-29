@@ -12,6 +12,7 @@ import { ROLE_NAMES } from './config/constants.mjs';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import initializeContainer from './container.js';
+import configRoutes from './routes/config.js';
 import models from './models/index.js';
 
 const { info, error: _error } = logger;
@@ -61,45 +62,28 @@ app.use(json());
     // Create default roles only if needed
     await createDefaultRoles(db.models.Role);
     // Initialize the container
-    const container = initializeContainer(db); // Pass the entire models object
+    const container = initializeContainer(db);
 
-    // Retrieve controllers from the container
-    const {
-      userController,
-      authController,
-      announcementController,
-      assignmentController,
-      chatController,
-      chatMessageController,
-      courseController,
-      departmentController,
-      levelController,
-      permissionController,
-      roleController,
-      rolePermissionController,
-      courseMaterialController,
-    } = container;
-
-    // Routes
-    app.use('/api/v1/auth', authRoutes(authController));
-    app.use('/api/v1/users', userRoutes(userController));
-    app.use('/api/v1/courses', courseRoutes(courseController));
-    app.use('/api/v1/assignments', assignmentRoutes(assignmentController));
-    app.use('/api/v1/announcements', announcementRoutes(announcementController));
-    app.use('/api/v1/chats', chatRoutes(chatController));
-    app.use('/api/v1/chat-messages', chatMessageRoutes(chatMessageController));
-    app.use('/api/v1/departments', departmentRoutes(departmentController));
-    app.use('/api/v1/levels', levelRoutes(levelController));
-    app.use('/api/v1/permissions', permissionsRoutes(permissionController));
-    app.use('/api/v1/roles', rolesRoutes(roleController));
-    app.use('/api/v1/role-permissions', rolePermissionsRoutes(rolePermissionController));
-    app.use('/api/v1/course-materials', courseMaterialRoutes(courseMaterialController));
+    // Routes - Corrected to pass individual controllers
+    app.use('/api/v1/auth', authRoutes(container.authController));
+    app.use('/api/v1/users', userRoutes(container.userController));
+    app.use('/api/v1/courses', courseRoutes(container.courseController));
+    app.use('/api/v1/assignments', assignmentRoutes(container.assignmentController));
+    app.use('/api/v1/announcements', announcementRoutes(container.announcementController));
+    app.use('/api/v1/chats', chatRoutes(container.chatController));
+    app.use('/api/v1/chat-messages', chatMessageRoutes(container.chatMessageController));
+    app.use('/api/v1/departments', departmentRoutes(container.departmentController));
+    app.use('/api/v1/levels', levelRoutes(container.levelController));
+    app.use('/api/v1/permissions', permissionsRoutes(container.permissionController));
+    app.use('/api/v1/roles', rolesRoutes(container.roleController));
+    app.use('/api/v1/role-permissions', rolePermissionsRoutes(container.rolePermissionController));
+    app.use('/api/v1/course-materials', courseMaterialRoutes(container.courseMaterialController));
+    app.use('/api/v1', configRoutes);
 
     // Swagger Documentation
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
     // Error Handling Middleware
-    // Access errorHandler through the default export
     app.use(errorMiddleware.errorHandler);
 
     // Security Middleware

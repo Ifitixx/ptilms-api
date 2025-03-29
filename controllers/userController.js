@@ -13,6 +13,16 @@ class UserController {
     this.userService = userService;
   }
 
+  async getAllUsers(req, res, next) {
+    try {
+      const users = await this.userService.getAllUsers(); 
+      res.status(200).json({ success: true, data: { users } });
+    } catch (error) {
+      _error(`Error in getAllUsers: ${error.message}`);
+      next(error);
+    }
+  }
+
   async getUserById(req, res, next) {
     try {
       const { userId } = req.params;

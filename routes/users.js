@@ -31,7 +31,7 @@ export default (userController) => {
     '/',
     authenticateToken,
     authorizeRole(['admin']),
-    (req, res, next) => userController.getAllUsers(req, res, next)
+    (req, res, next) => userController.getAllUsers(req, res, next) // Arrow function
   );
 
   /**
@@ -70,7 +70,7 @@ export default (userController) => {
     validate([
       param('userId').isUUID().withMessage('Invalid user ID format'),
     ]),
-    (req, res, next) => userController.getUserById(req, res, next)
+    (req, res, next) => userController.getUserById(req, res, next) // Arrow function
   );
 
   /**
@@ -122,7 +122,7 @@ export default (userController) => {
       body('username').optional().trim().isLength({ min: 3, max: 50 }).withMessage('Username must be between 3 and 50 characters'),
       body('email').optional().trim().isEmail().withMessage('Invalid email format'),
     ]),
-    (req, res, next) => userController.updateUser(req, res, next)
+    (req, res, next) => userController.updateUser(req, res, next) // Arrow function
   );
 
   /**
@@ -175,7 +175,7 @@ export default (userController) => {
       body('newPassword').trim().notEmpty().withMessage('New password is required').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
         .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/).withMessage('Password must contain at least 8 characters, one uppercase, one lowercase, one number and one special character'),
     ]),
-    (req, res, next) => userController.changePassword(req, res, next)
+    (req, res, next) => userController.changePassword(req, res, next) // Arrow function
   );
 
   /**
@@ -214,7 +214,7 @@ export default (userController) => {
     validate([
       param('userId').isUUID().withMessage('Invalid user ID format'),
     ]),
-    (req, res, next) => userController.deleteUser(req, res, next)
+    (req, res, next) => userController.deleteUser(req, res, next) // Arrow function
   );
 
   /**
@@ -252,7 +252,7 @@ export default (userController) => {
     validate([
       query('since').isISO8601().withMessage('Invalid date format for "since" parameter'),
     ]),
-    (req, res, next) => userController.getModifiedUsers(req, res, next)
+    (req, res, next) => userController.getModifiedUsers(req, res, next) // Arrow function
   );
 
   return router;

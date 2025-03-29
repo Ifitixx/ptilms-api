@@ -7,6 +7,15 @@ class UserService {
     this.userRepository = userRepository;
   }
 
+  async getAllUsers() {
+    try {
+      return await this.userRepository.getAllUsers();
+    } catch (error) {
+      _error(`Error in getAllUsers: ${error.message}`);
+      throw error;
+    }
+  }
+
   async getUserById(userId) {
     try {
       const user = await this.userRepository.getUserById(userId);
