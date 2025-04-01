@@ -2,8 +2,8 @@
 import { error as _error } from '../utils/logger.js';
 
 class RoleRepository {
-  constructor(roleModel) {
-    this.roleModel = roleModel;
+  constructor(Role) { // Expect model directly
+    this.roleModel = Role;
   }
 
   async getAllRoles() {

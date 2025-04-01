@@ -17,22 +17,10 @@ class AuthService {
     this.emailService = emailService;
   }
 
-  // Correctly implemented checkEmailExists
-  async checkEmailExists(email) {
-    const user = await this.userRepository.getUserByEmail(email);
-    return !!user; // Returns true if a user exists, false otherwise
-  }
-
   async register(userData) {
     try {
       let { email, username, password, role } = userData;
       role = role.toLowerCase();
-
-      // Check if the user already exists (using the corrected method)
-      const emailExists = await this.checkEmailExists(email);
-      if (emailExists) {
-        throw new ConflictError('User with this email already exists');
-      }
 
       // Validate the user-selected role (case-insensitive)
       if (!USER_SELECTABLE_ROLES.map(r => r.toLowerCase()).includes(role)) {
@@ -59,7 +47,7 @@ class AuthService {
         isVerified: false, // User is not verified initially
       });
       // Send verification email
-      const verificationLink = `${app.baseUrl}/auth/verify/${verificationToken}`;
+      const verificationLink = `${app.baseUrl}/api/v1/auth/verify/${verificationToken}`; // Direct link
       const emailSubject = 'Welcome to PTiLMS! Verify Your Account';
       const emailHtml = `
         <p>Dear ${user.username},</p>
@@ -73,8 +61,25 @@ class AuthService {
       return user;
     } catch (error) {
       _error(`Error in register: ${error.message}`);
-      throw error;
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        // Handle unique constraint violations
+        const errors = error.errors.map(e => ({ field: e.path, message: e.message }));
+        if (errors.some(e => e.field === 'email')) {
+          throw new ConflictError('Email already in use');
+        } else if (errors.some(e => e.field === 'username')) {
+          throw new ConflictError('Username already in use');
+        } else {
+          throw new ConflictError('Registration conflict'); // Generic message if neither email nor username
+        }
+      }
+      throw error; // Re-throw other errors
     }
+  }
+
+  // Correctly implemented checkEmailExists
+  async checkEmailExists(email) {
+    const user = await this.userRepository.getUserByEmail(email);
+    return !!user; // Returns true if a user exists, false otherwise
   }
 
   async login(email, password) {
@@ -120,15 +125,15 @@ class AuthService {
   async refreshToken(refreshToken) {
     try {
       if (!refreshToken) throw new BadRequestError('Refresh token required');
-
+  
       const decoded = verify(refreshToken, _jwt.refreshSecret);
       const user = await this.userRepository.getUserById(decoded.userId);
-
+  
       if (!user) throw new UnauthorizedError('User not found');
       if (await isBlacklisted(refreshToken)) {
         throw new UnauthorizedError('Token revoked');
       }
-
+  
       // Compare the provided refresh token with the stored hash
       if (!user.refreshTokenHash) {
         throw new UnauthorizedError('Refresh token not found for user'); // Handle case where hash is missing
@@ -137,33 +142,35 @@ class AuthService {
       if (!isTokenValid) {
         throw new UnauthorizedError('Invalid refresh token');
       }
-
+  
+      // Calculate remaining time for the *old* refresh token
+      const remainingTime = Math.floor((decoded.exp * 1000 - Date.now()) / 1000);
+  
       // Generate new tokens
       const accessToken = sign(
         { userId: user.id, email: user.email, role: user.role?.name },
         _jwt.secret,
         { expiresIn: _jwt.accessExpiry }
       );
-
+  
+      // Blacklist the *old* refresh token
+      if (remainingTime > 0) {  // Only blacklist if it hasn't already expired
+        await addToken(refreshToken, remainingTime);
+      }
+  
       const newRefreshToken = sign(
         { userId: user.id, email: user.email, role: user.role?.name },
         _jwt.refreshSecret,
         { expiresIn: _jwt.refreshExpiry }
       );
-
+  
       // Hash the new refresh token and update it in the database
       const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, 10);
       await this.userRepository.updateUser(user.id, { refreshTokenHash: newRefreshTokenHash });
-
-      // Blacklist old refresh token (optional, depending on your security requirements)
-      const remainingTime = Math.floor((decoded.exp * 1000 - Date.now()) / 1000);
-      if (remainingTime > 0) {
-        await addToken(refreshToken, remainingTime);
-      }
-
+  
       // Calculate the expiration time (in seconds) for the access token
       const accessTokenExpiration = this.getAccessTokenExpirationInSeconds();
-
+  
       return { accessToken, refreshToken: newRefreshToken, expires_in: accessTokenExpiration };
     } catch (error) {
         _error(`Error in refreshToken: ${error.message}`); // Log the error
@@ -205,23 +212,24 @@ class AuthService {
       if (!user || user.resetTokenExpiry < new Date()) {
         throw new UnauthorizedError('Invalid or expired token');
       }
-
-      await this.userRepository.updateUser(user.id, { password: newPassword, resetToken: null, resetTokenExpiry: null });
-      // Send email confirmation
-      const emailSubject = 'Password Reset Confirmation';
-      const emailHtml = `
-        <p>Dear ${user.username},</p>
-        <p>Your password has been successfully reset.</p>
-        <p>If you did not perform this action, please contact us immediately.</p>
-        <p>Sincerely,<br>The PTiLMS Team</p>
-        `;
-      await this.emailService.sendEmail(user.email, emailSubject, emailHtml);
-      info(`Password reset for user ${user.email}`);
+      // Load the user instance
+      const userInstance = await this.userRepository.getUserById(user.id);
+      if (!userInstance) {
+        throw new NotFoundError('User not found'); // Handle case where user disappears
+      }
+      // Set the new password on the instance
+      userInstance.password = newPassword;
+      // Save the instance to trigger the beforeSave hook
+      await userInstance.save();
+      // Clear the reset token
+      await this.userRepository.updateUser(user.id, { resetToken: null, resetTokenExpiry: null });
+      // ... rest of the method (email confirmation, logging) ...
     } catch (error) {
       _error(`Error in resetPassword: ${error.message}`);
       throw error;
     }
   }
+
   // New forgotPassword method
   async forgotPassword(email) {
     try {

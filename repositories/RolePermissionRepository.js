@@ -1,9 +1,11 @@
 // ptilms-api/repositories/RolePermissionRepository.js
 class RolePermissionRepository {
-    constructor(rolePermissionModel) {
-      this.rolePermissionModel = rolePermissionModel;
-    }
-  
+  constructor({ RolePermission, Role, Permission }) { // Expect an object
+    this.rolePermissionModel = RolePermission;
+    this.roleModel = Role;
+    this.permissionModel = Permission;
+  }
+
     async getRolePermissionsByRoleId(roleId) {
       return await this.rolePermissionModel.findAll({ where: { roleId } });
     }

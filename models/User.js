@@ -152,8 +152,10 @@ export default (sequelize) => {
       hooks: {
         beforeSave: async (user) => {
           if (user.changed('password')) {
+            console.log("Hashing password in beforeSave hook..."); 
             const salt = await genSalt(saltRounds);
             user.password = await hash(user.password, salt);
+            console.log("Password hashed successfully.");
           }
         },
       },

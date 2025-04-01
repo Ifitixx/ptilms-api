@@ -1,11 +1,12 @@
 // ptilms-api/repositories/UserRepository.js
 import { Op } from 'sequelize';
 import { error as _error } from '../utils/logger.js';
+import bcrypt from 'bcrypt'; 
 
 class UserRepository {
-  constructor(models) { // Changed to receive models
-    this.userModel = models.User;
-    this.roleModel = models.Role;
+  constructor({User, Role}) { // Changed to receive models
+    this.userModel = User;
+    this.roleModel = Role;
   }
 
   async getUserByEmail(email) {
@@ -56,7 +57,19 @@ class UserRepository {
 
   async createUser(data) {
     try {
-      return await this.userModel.create(data);
+      // Generate a random refresh token
+      const refreshToken = Math.random().toString(36).slice(2);
+      // Hash the refresh token
+      const saltRounds = 10; // You can adjust the salt rounds
+      const refreshTokenHash = await bcrypt.hash(refreshToken, saltRounds);
+
+      // Add the refreshTokenHash to the user data
+      const userData = {
+        ...data,
+        refreshTokenHash,
+      };
+
+      return await this.userModel.create(userData);
     } catch (error) {
       _error(`Error in createUser: ${error.message}`);
       throw error;

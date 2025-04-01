@@ -57,12 +57,12 @@ export default (authController) => {
       body('role')
         .trim()
         .notEmpty().withMessage('Role cannot be empty')
-        .isIn(USER_SELECTABLE_ROLES).withMessage(`Role must be one of: ${USER_SELECTABLE_ROLES.join(', ')}`),
+        //  .isIn(USER_SELECTABLE_ROLES).withMessage(`Role must be one of: ${USER_SELECTABLE_ROLES.join(', ')}`),
+        .isIn(USER_SELECTABLE_ROLES.filter(role => role !== 'admin')).withMessage(`Role must be one of: ${USER_SELECTABLE_ROLES.filter(role => role !== 'admin').join(', ')}`),
     ]),
     (req, res, next) => authController.registerUser(req, res, next)
   );
 
-  // ... other routes ...
   /**
    * @swagger
    * /api/v1/auth/verify/{token}:
@@ -231,7 +231,7 @@ export default (authController) => {
         .trim()
         .notEmpty().withMessage('New password cannot be empty')
         .isLength({ min: 8 }).withMessage('Password must be at least 8 characters long')
-        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/).withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-])[A-Za-z\d!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]{8,}$/).withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
     ]),
     (req, res, next) => authController.resetPassword(req, res, next)
   );

@@ -5,6 +5,7 @@ import {
   InvalidCredentialsError,
   ValidationError,
   UserNotFoundError,
+  UnauthorizedError
 } from '../utils/errors.js';
 import logger from '../utils/logger.js';
 import validator from 'validator';
@@ -124,10 +125,16 @@ class AuthController {
         throw new BadRequestError('Verification token is required');
       }
       await this.authService.verifyUser(token);
-      res.status(200).json({ success: true, message: 'User has been verified.' });
+      // Always return a JSON response
+      return res.status(200).json({ success: true, message: 'User has been verified.' });
     } catch (error) {
       logger.error(`Error in verifyUser: ${error.message}`);
-      next(error);
+      // Always return a JSON error response
+      let errorMessage = 'Verification failed. Please try again or contact support.'; // Default message
+      if (error instanceof UnauthorizedError) {
+        errorMessage = error.message; // Use specific error message if available
+      }
+      return res.status(400).json({ success: false, error: { message: errorMessage } }); // Changed to 400 for bad request
     }
   }
 }

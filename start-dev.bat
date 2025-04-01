@@ -1,29 +1,37 @@
 @echo off
+title PTiLMS Development Server
+color 0A
+mode con:cols=120 lines=50
+
+:: Set console properties for better scrolling
+reg add HKCU\Console /v ScreenBufferSize /t REG_DWORD /d 0x2329001E /f
+reg add HKCU\Console /v WindowSize /t REG_DWORD /d 0x001E0078 /f
+
 echo Script started.
 
-REM Set the API port
+:: Set the API port
 set PORT=3000
 echo Port set to: %PORT%
 
-REM Start ngrok in the background
-echo Attempting to start ngrok...
-start "Ngrok" /B ngrok http %PORT%
+:: Start ngrok in a new window
+start "Ngrok Tunnel" cmd /k ngrok http %PORT%
 
-REM Wait and retry to get the ngrok URL
+:: Wait for ngrok initialization
+timeout /t 10 /nobreak > nul
+
+:: Get ngrok URL in main window
 set RETRY=0
 set MAX_RETRY=5
 set URL=
 
 :retry
-echo Waiting for ngrok to initialize (Attempt %RETRY%)...
-timeout /t 5 > nul
-
-echo Retrieving ngrok URL from API...
+echo Retrieving ngrok URL (Attempt %RETRY%)...
 for /f "delims=" %%a in ('powershell -Command "(Invoke-WebRequest -Uri http://localhost:4040/api/tunnels -UseBasicParsing).Content | ConvertFrom-Json | Select -ExpandProperty tunnels | Where {$_.proto -eq 'https'} | Select -First 1 -ExpandProperty public_url"') do set "URL=%%a"
 
 if "%URL%"=="" (
     set /a RETRY+=1
     if %RETRY% LSS %MAX_RETRY% (
+        timeout /t 5 /nobreak > nul
         goto :retry
     ) else (
         echo Error: Could not retrieve ngrok URL after %MAX_RETRY% attempts.
@@ -31,16 +39,16 @@ if "%URL%"=="" (
     )
 )
 
-echo ngrok URL found: %URL%
+echo Ngrok URL found: %URL%
 
-REM Update .env with the new URL
-echo Updating .env with new ngrok URL: %URL%
+:: Update .env with the new URL
+echo Updating .env...
 node updateEnv.js "%URL%"
-echo .env updated.
 
-REM Start the Node.js server
-echo Starting Node.js server with npm run dev...
-start "PTiLMS API" /B npm run dev
+:: Start Node.js server in a separate window
+start "PTiLMS Server" cmd /k npm run dev
 
 :end
+echo Development environment ready. Ngrok and Server running in separate windows.
+echo You can now interact with this console normally.
 pause

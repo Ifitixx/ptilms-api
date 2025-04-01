@@ -9,7 +9,7 @@ export const ROLES = {
 export const ROLE_NAMES = Object.values(ROLES);
 
 // User-related constants
-export const USER_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+export const USER_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-])[A-Za-z\d!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]{8,}$/;
 export const USER_USERNAME_MIN_LENGTH = 3;
 export const USER_USERNAME_MAX_LENGTH = 30;
 export const USER_EMAIL_MAX_LENGTH = 254;

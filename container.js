@@ -41,22 +41,22 @@ import RolePermissionController from './controllers/RolePermissionController.js'
 import CourseMaterialController from './controllers/CourseMaterialController.js';
 
 // This function will be called in server.js to initialize the container
-export default function initializeContainer(db) {
-  const { Role, User, Course, Assignment, Announcement, Chat, ChatMessage, Department, Level, Permission, RolePermission, CourseMaterial } = db.models;
+export default function initializeContainer({ sequelize, models }) { // Destructure sequelize and models
+  const { Role, User, Course, Assignment, Announcement, Chat, ChatMessage, Department, Level, Permission, RolePermission, CourseMaterial } = models; // Use models
 
-  // Repositories
+  // Repositories - Pass models as needed
   const roleRepository = new RoleRepository(Role);
-  const userRepository = new UserRepository(db.models); // Pass db.models
-  const courseRepository = new CourseRepository(Course);
-  const assignmentRepository = new AssignmentRepository(Assignment);
-  const announcementRepository = new AnnouncementRepository(Announcement, Course, User, Department, Level);
-  const chatRepository = new ChatRepository(Chat);
-  const chatMessageRepository = new ChatMessageRepository(ChatMessage);
+  const userRepository = new UserRepository({ User, Role }); // Pass User and Role
+  const courseRepository = new CourseRepository(Course, Department, Level, User); // Pass all required models
+  const assignmentRepository = new AssignmentRepository(Assignment, Course); // Pass Assignment and Course
+  const announcementRepository = new AnnouncementRepository({ Announcement, User, Course, Department, Level }); // Pass as object
+  const chatRepository = new ChatRepository(Chat, User); // Pass Chat and User
+  const chatMessageRepository = new ChatMessageRepository(ChatMessage, Chat, User); // Pass ChatMessage, Chat, and User
   const departmentRepository = new DepartmentRepository(Department);
   const levelRepository = new LevelRepository(Level);
   const permissionRepository = new PermissionRepository(Permission);
-  const rolePermissionRepository = new RolePermissionRepository(RolePermission, Role, Permission);
-  const courseMaterialRepository = new CourseMaterialRepository(CourseMaterial);
+  const rolePermissionRepository = new RolePermissionRepository({ RolePermission, Role, Permission }); // Pass as object
+  const courseMaterialRepository = new CourseMaterialRepository(CourseMaterial, Course); // Pass CourseMaterial and Course
 
   // Services
   const emailService = new EmailService();

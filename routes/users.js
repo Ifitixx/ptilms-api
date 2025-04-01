@@ -115,6 +115,11 @@ export default (userController) => {
    */
   router.put(
     '/:userId',
+    validate([
+      param('userId').isUUID(),
+      body('email').optional().isEmail(),
+      body('username').optional().isLength({ min: 3 })
+    ]),
     authenticateToken,
     authorizeRole(['admin']),
     validate([

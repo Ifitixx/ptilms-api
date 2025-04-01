@@ -1,8 +1,8 @@
 // ptilms-api/repositories/PermissionRepository.js
 class PermissionRepository {
-    constructor(permissionModel) {
-      this.permissionModel = permissionModel;
-    }
+  constructor(Permission) { // Expect model directly
+    this.permissionModel = Permission;
+  }
   
     async getAllPermissions() {
       return await this.permissionModel.findAll();

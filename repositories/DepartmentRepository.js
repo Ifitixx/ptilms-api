@@ -1,9 +1,9 @@
 // ptilms-api/repositories/DepartmentRepository.js
 class DepartmentRepository {
-    constructor(departmentModel) {
-      this.departmentModel = departmentModel;
-    }
-  
+  constructor(Department) { // Expect model directly
+    this.departmentModel = Department;
+  }
+
     async getAllDepartments() {
       return await this.departmentModel.findAll();
     }

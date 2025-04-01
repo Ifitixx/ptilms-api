@@ -16,11 +16,7 @@ const sequelize = new Sequelize(database.url, {
   logging: (msg) => info(msg),
 });
 
-const db = {
-  sequelize,
-  Sequelize,
-  models: {}, // Add a models property to store the models
-};
+const models = {}; // Initialize an empty object to store models
 
 const modelFiles = readdirSync(__dirname)
   .filter(file => file !== 'index.js' && file.slice(-3) === '.js');
@@ -33,7 +29,7 @@ try {
     try {
       const module = await import(modelUrl);
       const model = module.default(sequelize, DataTypes);
-      db.models[model.name] = model; // Store the model in db.models
+      models[model.name] = model; // Store the model in the models object
     } catch (err) {
       error(`Error loading model ${file}: ${err.message}`);
       process.exit(1);
@@ -45,10 +41,11 @@ try {
 }
 
 // Set up associations
-Object.keys(db.models).forEach(modelName => {
-  if (typeof db.models[modelName].associate === 'function') {
-    db.models[modelName].associate(db.models); // Pass db.models to associate
+Object.keys(models).forEach(modelName => {
+  if (typeof models[modelName].associate === 'function') {
+    models[modelName].associate(models); // Pass the models object to associate
   }
 });
 
-export default db;
+// Export sequelize and the models object
+export { sequelize, models };
