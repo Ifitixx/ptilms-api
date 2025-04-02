@@ -171,16 +171,16 @@ export default (userController) => {
    *         description: Internal server error
    */
   router.put(
-    '/:userId/change-password',
+    '/:userEmail/change-password', // Changed route parameter name to userEmail
     authenticateToken,
     authorizeRole(['admin', 'lecturer', 'student']),
     validate([
-      param('userId').isUUID().withMessage('Invalid user ID format'),
+      param('userEmail').isEmail().withMessage('Invalid email format'), // Changed validation to isEmail
       body('currentPassword').trim().notEmpty().withMessage('Current password is required'),
       body('newPassword').trim().notEmpty().withMessage('New password is required').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
-        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/).withMessage('Password must contain at least 8 characters, one uppercase, one lowercase, one number and one special character'),
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-])[A-Za-z\d!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]{8,}$/).withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
     ]),
-    (req, res, next) => userController.changePassword(req, res, next) // Arrow function
+    (req, res, next) => userController.changePassword(req, res, next)
   );
 
   /**

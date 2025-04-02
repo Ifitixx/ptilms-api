@@ -43,18 +43,19 @@ class UserService {
   }
 
   async changePassword(userId, currentPassword, newPassword) {
+    console.log(`changePassword called with: userId=${userId}, currentPassword=${currentPassword}, newPassword=${newPassword}`);
     try {
-      const user = await this.userRepository.getUserById(userId);
+      // Changed this line to getUserByEmail
+      const user = await this.userRepository.getUserByEmail(userId); 
       if (!user) {
         throw new NotFoundError('User not found');
       }
-
       const isPasswordValid = await user.verifyPassword(currentPassword);
       if (!isPasswordValid) {
         throw new UnauthorizedError('Invalid current password');
       }
-
-      await this.userRepository.updateUser(userId, { password: newPassword });
+      // Changed this line to use the user's ID
+      await this.userRepository.updateUser(user.id, { password: newPassword }); 
     } catch (error) {
       _error(`Error in changePassword: ${error.message}`);
       throw error;

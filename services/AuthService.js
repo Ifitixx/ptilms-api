@@ -111,7 +111,7 @@ class AuthService {
       );
       // Hash the refresh token before storing it
       const refreshTokenHash = await bcrypt.hash(refreshToken, 10); // Use a salt factor of 10
-      
+
       // Update the user in the database with the hashed refresh token
       await this.userRepository.updateUser(user.id, { refreshTokenHash });
 
@@ -125,15 +125,15 @@ class AuthService {
   async refreshToken(refreshToken) {
     try {
       if (!refreshToken) throw new BadRequestError('Refresh token required');
-  
+
       const decoded = verify(refreshToken, _jwt.refreshSecret);
       const user = await this.userRepository.getUserById(decoded.userId);
-  
+
       if (!user) throw new UnauthorizedError('User not found');
       if (await isBlacklisted(refreshToken)) {
         throw new UnauthorizedError('Token revoked');
       }
-  
+
       // Compare the provided refresh token with the stored hash
       if (!user.refreshTokenHash) {
         throw new UnauthorizedError('Refresh token not found for user'); // Handle case where hash is missing
@@ -142,35 +142,35 @@ class AuthService {
       if (!isTokenValid) {
         throw new UnauthorizedError('Invalid refresh token');
       }
-  
+
       // Calculate remaining time for the *old* refresh token
       const remainingTime = Math.floor((decoded.exp * 1000 - Date.now()) / 1000);
-  
+
       // Generate new tokens
       const accessToken = sign(
         { userId: user.id, email: user.email, role: user.role?.name },
         _jwt.secret,
         { expiresIn: _jwt.accessExpiry }
       );
-  
+
       // Blacklist the *old* refresh token
       if (remainingTime > 0) {  // Only blacklist if it hasn't already expired
         await addToken(refreshToken, remainingTime);
       }
-  
+
       const newRefreshToken = sign(
         { userId: user.id, email: user.email, role: user.role?.name },
         _jwt.refreshSecret,
         { expiresIn: _jwt.refreshExpiry }
       );
-  
+
       // Hash the new refresh token and update it in the database
       const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, 10);
       await this.userRepository.updateUser(user.id, { refreshTokenHash: newRefreshTokenHash });
-  
+
       // Calculate the expiration time (in seconds) for the access token
       const accessTokenExpiration = this.getAccessTokenExpirationInSeconds();
-  
+
       return { accessToken, refreshToken: newRefreshToken, expires_in: accessTokenExpiration };
     } catch (error) {
         _error(`Error in refreshToken: ${error.message}`); // Log the error
@@ -181,7 +181,7 @@ class AuthService {
         }
       }
     }
-  
+
   getAccessTokenExpirationInSeconds() {
     const accessExpiry = _jwt.accessExpiry;
     const timeUnit = accessExpiry.slice(-1);

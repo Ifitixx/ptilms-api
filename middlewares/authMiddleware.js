@@ -11,6 +11,8 @@ const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
+  console.log(`Received token: ${token}`); // Add this line
+
   if (!token) {
     return next(new UnauthorizedError('No token provided'));
   }
@@ -20,6 +22,7 @@ const authenticateToken = async (req, res, next) => {
   }
 
   verify(token, _jwt.secret, (err, user) => {
+    console.log(`JWT verification result: err=${err}, user=${JSON.stringify(user)}`); // Add this line
     if (err) {
       return next(new UnauthorizedError('Invalid token'));
     }

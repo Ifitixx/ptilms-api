@@ -36,7 +36,11 @@ export default (sequelize) => {
     }
 
     async verifyPassword(password) {
-      return compare(password, this.password);
+      const userWithPassword = await this.constructor.scope('withSensitive').findByPk(this.id);
+      if (!userWithPassword) {
+        throw new Error("User not found with sensitive data");
+      }
+      return compare(password, userWithPassword.password);
     }
 
     toJSON() {

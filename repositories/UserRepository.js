@@ -1,12 +1,26 @@
 // ptilms-api/repositories/UserRepository.js
 import { Op } from 'sequelize';
 import { error as _error } from '../utils/logger.js';
-import bcrypt from 'bcrypt'; 
+import bcrypt from 'bcrypt';
 
 class UserRepository {
-  constructor({User, Role}) { // Changed to receive models
+  constructor({User, Role}) { 
     this.userModel = User;
     this.roleModel = Role;
+  }
+
+  async getAllUsers() {  
+    try {
+      return await this.userModel.findAll({
+        include: {
+          model: this.roleModel,
+          as: 'role',
+        },
+      });
+    } catch (error) {
+      _error(`Error in getAllUsers: ${error.message}`);
+      throw error;
+    }
   }
 
   async getUserByEmail(email) {
@@ -67,9 +81,7 @@ class UserRepository {
       const userData = {
         ...data,
         refreshTokenHash,
-      };
-
-      return await this.userModel.create(userData);
+      }; return await this.userModel.create(userData);
     } catch (error) {
       _error(`Error in createUser: ${error.message}`);
       throw error;

@@ -12,6 +12,9 @@ const apiLimiter = rateLimit({
   handler: (req, res, next) => {
     next(new RateLimitError('Too many requests, please try again later'));
   },
+  trustProxy: (address, index) => {  // <-- ADD this function
+    return index === 0; // Trust the first proxy (ngrok)
+  },
 });
 
 const loginLimiter = rateLimit({

@@ -61,20 +61,17 @@ class UserController {
 
   async changePassword(req, res, next) {
     try {
-      const { userId } = req.params;
+      const { userEmail } = req.params; // Changed from userId to userEmail
       const { currentPassword, newPassword } = req.body;
-      // Validate userId format
-      if (!validator.isUUID(userId)) {
-        throw new ValidationError([{ field: 'userId', message: 'Invalid userId format' }]);
-      }
+      // No need to validate as email is validated in routes
       if (!currentPassword || !newPassword) {
         throw new BadRequestError('Current password and new password are required');
       }
-      // Validate password length
+      // Validate password length (you can keep this here or move to routes)
       if (!validator.isLength(newPassword, { min: 8 })) {
         throw new ValidationError([{ field: 'newPassword', message: 'Password must be at least 8 characters long' }]);
       }
-      const user = await this.userService.changePassword(userId, currentPassword, newPassword);
+      const user = await this.userService.changePassword(userEmail, currentPassword, newPassword); // Pass userEmail
       if (!user) {
         throw new InvalidCredentialsError();
       }

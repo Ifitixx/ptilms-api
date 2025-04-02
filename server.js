@@ -67,7 +67,7 @@ app.use(json());
     // Initialize the container
     const container = initializeContainer({ sequelize, models }); // Pass sequelize and models
 
-    app.set('trust proxy', true);
+    // app.set('trust proxy', true);  <-- REMOVED this line
 
     // Security Middleware
     app.use(helmet());
@@ -77,6 +77,9 @@ app.use(json());
       windowMs: 15 * 60 * 1000, // 15 minutes
       max: 100, // Limit each IP to 100 requests per windowMs
       message: 'Too many requests from this IP, please try again after 15 minutes',
+      trustProxy: (address, index) => {  // <-- ADDED this function
+        return index === 0; // Trust the first proxy (ngrok)
+      },
     });
     app.use('/api/', apiLimiter);
 
