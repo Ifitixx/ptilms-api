@@ -33,10 +33,19 @@ export default (sequelize) => {
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
+      // Add association to Course
+      User.hasMany(models.Course, {
+        foreignKey: 'lecturerId',
+        as: 'courses',
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE',
+      });
     }
 
     async verifyPassword(password) {
-      const userWithPassword = await this.constructor.scope('withSensitive').findByPk(this.id);
+      // Use email to find the user with sensitive data
+      const userWithPassword = await this.constructor.scope('withSensitive').findOne({ where: { email: this.email } });
+
       if (!userWithPassword) {
         throw new Error("User not found with sensitive data");
       }
@@ -92,17 +101,20 @@ export default (sequelize) => {
         type: DataTypes.UUID,
         allowNull: true,
         references: {
-          model: 'Roles',
+          model: 'roles',
           key: 'id',
         },
+        field: 'role_id', // Ensure snake_case
       },
       phoneNumber: {
         type: DataTypes.STRING,
         allowNull: true,
+        field: 'phone_number', // Ensure snake_case
       },
       dateOfBirth: {
         type: DataTypes.DATE,
         allowNull: true,
+        field: 'date_of_birth', // Ensure snake_case
       },
       sex: {
         type: DataTypes.ENUM(...USER_SEX_ENUM),
@@ -111,32 +123,44 @@ export default (sequelize) => {
       profilePictureUrl: {
         type: DataTypes.STRING,
         allowNull: true,
+        field: 'profile_picture_url', // Ensure snake_case
       },
       lastLogin: {
         type: DataTypes.DATE,
         allowNull: true,
+        field: 'last_login', // Ensure snake_case
       },
       isVerified: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
         allowNull: false,
+        field: 'is_verified', // Ensure snake_case
       },
       verificationToken: {
         type: DataTypes.STRING,
         allowNull: true,
         unique: true,
+        field: 'verification_token', // Ensure snake_case
       },
       resetToken: {
         type: DataTypes.STRING,
         allowNull: true,
+        field: 'reset_token', // Ensure snake_case
       },
       resetTokenExpiry: {
         type: DataTypes.DATE,
         allowNull: true,
+        field: 'reset_token_expiry', // Ensure snake_case
       },
       refreshTokenHash: {
         type: DataTypes.STRING,
         allowNull: false,
+        field: 'refresh_token_hash', // Ensure snake_case
+      },
+      // Add department column
+      department: {
+        type: DataTypes.STRING,
+        allowNull: true, // Assuming department is optional for non-lecturers
       },
     },
     {
@@ -144,19 +168,22 @@ export default (sequelize) => {
       modelName: 'User',
       tableName: 'users',
       paranoid: true,
-      underscored: true,
+      underscored: true, // Ensure snake_case for timestamps and field names
       defaultScope: {
-        attributes: { exclude: ['password', 'resetToken', 'resetTokenExpiry'] },
+        attributes: { exclude: ['password', 'resetToken', 'resetTokenExpiry', 'refreshTokenHash'] }, // Exclude refreshTokenHash
       },
       scopes: {
         withSensitive: {
-          attributes: { include: ['password', 'resetToken', 'resetTokenExpiry'] },
+          attributes: { include: ['password', 'resetToken', 'resetTokenExpiry', 'refreshTokenHash'] }, // Include refreshTokenHash
+        },
+        withDeleted: {  // Added scope to include soft-deleted records
+          paranoid: false,
         },
       },
       hooks: {
         beforeSave: async (user) => {
           if (user.changed('password')) {
-            console.log("Hashing password in beforeSave hook..."); 
+            console.log("Hashing password in beforeSave hook...");
             const salt = await genSalt(saltRounds);
             user.password = await hash(user.password, salt);
             console.log("Password hashed successfully.");

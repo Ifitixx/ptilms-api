@@ -1,23 +1,29 @@
 // ptilms-api/utils/errors.js
 class BaseError extends Error {
-  constructor(message, statusCode) {
+  constructor(message, statusCode, errors) { // Added errors parameter
     super(message);
     this.statusCode = statusCode;
     this.name = this.constructor.name;
+    this.errors = errors; // Added this line
     Error.captureStackTrace(this, this.constructor);
   }
 }
 
 class ValidationError extends BaseError {
   constructor(errors) {
-    super('Validation Error', 400);
-    this.errors = errors;
+    super('Validation Error', 400, errors); // Passed errors to super
   }
 }
 
 class UnauthorizedError extends BaseError {
   constructor(message = 'Unauthorized') {
     super(message, 401);
+  }
+}
+
+class AuthenticationError extends UnauthorizedError {
+  constructor(message = 'Authentication failed') {
+    super(message);
   }
 }
 
@@ -53,6 +59,12 @@ class ForbiddenError extends BaseError {
 
 class EmailAlreadyExistsError extends ConflictError {
   constructor(message = 'Email already exists') {
+    super(message);
+  }
+}
+
+class UsernameAlreadyExistsError extends ConflictError {
+  constructor(message = 'Username already exists') {
     super(message);
   }
 }
@@ -138,16 +150,24 @@ class RolePermissionNotFoundError extends NotFoundError {
   }
 }
 
+class AuthorizationError extends ForbiddenError {
+  constructor(message = 'Not authorized') {
+    super(message);
+  }
+}
+
 export {
   BaseError,
   ValidationError,
   UnauthorizedError,
+  AuthenticationError,
   BadRequestError,
   NotFoundError,
   ConflictError,
   RateLimitError,
   ForbiddenError,
   EmailAlreadyExistsError,
+  UsernameAlreadyExistsError,
   UserNotFoundError,
   InvalidCredentialsError,
   InvalidTokenError,
@@ -162,4 +182,5 @@ export {
   PermissionNotFoundError,
   RoleNotFoundError,
   RolePermissionNotFoundError,
+  AuthorizationError,
 };

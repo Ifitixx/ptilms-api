@@ -9,14 +9,18 @@ class UserRepository {
     this.roleModel = Role;
   }
 
-  async getAllUsers() {  
+  async getAllUsers(includeDeleted = false) {  // Added includeDeleted parameter
     try {
-      return await this.userModel.findAll({
+      const options = {
         include: {
           model: this.roleModel,
           as: 'role',
         },
-      });
+      };
+      if (includeDeleted) {  // Only apply scope if including deleted records
+        options.scope = 'withDeleted';  // Use scope to include soft-deleted records
+      }
+      return await this.userModel.findAll(options);
     } catch (error) {
       _error(`Error in getAllUsers: ${error.message}`);
       throw error;
@@ -47,9 +51,13 @@ class UserRepository {
     }
   }
 
-  async getUserById(id) {
+  async getUserById(id, includeDeleted = false) {
     try {
-      return await this.userModel.findByPk(id, {
+      let query = this.userModel.scope('withSensitive'); // Apply 'withSensitive' scope initially
+      if (includeDeleted) {
+        query = query.scope('withDeleted'); // Apply 'withDeleted' scope if includeDeleted is true
+      }
+      return await query.findByPk(id, {
         include: {
           model: this.roleModel,
           as: 'role',
@@ -60,6 +68,7 @@ class UserRepository {
       throw error;
     }
   }
+
   async getUserByVerificationToken(verificationToken) {
     try {
       return await this.userModel.findOne({ where: { verification_token: verificationToken } });
@@ -90,12 +99,18 @@ class UserRepository {
 
   async updateUser(id, data) {
     try {
-      const [updatedRows] = await this.userModel.update(data, {
-        where: { id },
-      });
-      if (updatedRows === 0) {
+      const user = await this.userModel.findByPk(id);
+      if (!user) {
         return null; // No user found with the given ID
       }
+      // Update the user's data
+      for (const key in data) {
+        if (Object.hasOwnProperty.call(data, key)) {
+          user[key] = data[key];
+        }
+      }
+      // Save the updated user - this will trigger the beforeSave hook
+      await user.save();
       return await this.getUserById(id); // Return the updated user
     } catch (error) {
       _error(`Error in updateUser: ${error.message}`);
@@ -107,8 +122,8 @@ class UserRepository {
     try {
       const user = await this.userModel.findByPk(id);
       if (!user) return false;
-      await user.destroy();
-      return true;
+      await user.destroy(); // Correct: Await the destroy operation
+      return true; // Correct: Return true for successful deletion
     } catch (error) {
       _error(`Error in deleteUser: ${error.message}`);
       throw error;
@@ -132,7 +147,7 @@ class UserRepository {
     try {
       return await this.userModel.findAll({
         where: {
-          updatedAt: {
+          updated_at: {
             [Op.gt]: since,
           },
         },

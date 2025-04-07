@@ -5,16 +5,18 @@ import { UnauthorizedError, ConflictError, NotFoundError, ValidationError, BadRe
 import { error as _error, info } from '../utils/logger.js';
 import config from '../config/config.cjs';
 const { jwt: _jwt, app } = config;
-import { addToken, isBlacklisted } from '../utils/tokenBlacklist.js';
+import { addToBlacklist, isBlacklisted } from '../utils/tokenBlacklist.js';
 import { v4 as uuidv4 } from 'uuid';
 import { USER_SELECTABLE_ROLES } from '../config/constants.mjs';
 import bcrypt from 'bcrypt';
 
 class AuthService {
-  constructor({ userRepository, roleRepository, emailService }) { // Receive emailService
+  constructor({ userRepository, roleRepository, emailService, addToBlacklist, isBlacklisted }) { // Updated constructor
     this.userRepository = userRepository;
     this.roleRepository = roleRepository;
     this.emailService = emailService;
+    this.addToBlacklist = addToBlacklist; // Store addToBlacklist
+    this.isBlacklisted = isBlacklisted; // Store isBlacklisted
   }
 
   async register(userData) {
@@ -130,7 +132,7 @@ class AuthService {
       const user = await this.userRepository.getUserById(decoded.userId);
 
       if (!user) throw new UnauthorizedError('User not found');
-      if (await isBlacklisted(refreshToken)) {
+      if (await this.isBlacklisted(refreshToken)) { // Updated to use this.isBlacklisted
         throw new UnauthorizedError('Token revoked');
       }
 
@@ -155,7 +157,7 @@ class AuthService {
 
       // Blacklist the *old* refresh token
       if (remainingTime > 0) {  // Only blacklist if it hasn't already expired
-        await addToken(refreshToken, remainingTime);
+        await this.addToBlacklist(refreshToken, remainingTime);
       }
 
       const newRefreshToken = sign(

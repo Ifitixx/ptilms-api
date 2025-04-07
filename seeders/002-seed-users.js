@@ -1,113 +1,151 @@
+// ptilms-api/seeders/002-seed-users.js
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
-import * as constants from '../config/constants.mjs';
-import config from '../config/config.cjs';
-
-const { saltRounds } = config;
+import { ROLES, USER_SEX_ENUM } from '../config/constants.mjs';
 
 export default {
   async up(queryInterface, Sequelize) {
+    const transaction = await queryInterface.sequelize.transaction();
     try {
-      // Fetch the roles from the database
-      const roles = await queryInterface.sequelize.query(
-        'SELECT id, name FROM Roles',
-        { type: queryInterface.sequelize.QueryTypes.SELECT }
-      );
+      await queryInterface.bulkDelete('users', null, { transaction });
 
-      if (roles.length === 0) {
-        throw new Error('No roles found in the database. Please seed roles before running this seeder.');
+      const saltRounds = 12; // Consider moving this to config if not already there
+
+      // Fetch roles
+      const [adminRole, studentRole, lecturerRole] = await Promise.all([
+        queryInterface.sequelize.query(`SELECT id FROM Roles WHERE name = '${ROLES.ADMIN}';`, {
+          type: queryInterface.sequelize.QueryTypes.SELECT,
+          transaction,
+        }),
+        queryInterface.sequelize.query(`SELECT id FROM Roles WHERE name = '${ROLES.STUDENT}';`, {
+          type: queryInterface.sequelize.QueryTypes.SELECT,
+          transaction,
+        }),
+        queryInterface.sequelize.query(`SELECT id FROM Roles WHERE name = '${ROLES.LECTURER}';`, {
+          type: queryInterface.sequelize.QueryTypes.SELECT,transaction,
+        }),
+      ]);
+
+      if (!adminRole.length || !studentRole.length || !lecturerRole.length) {
+        throw new Error('Required roles not found. Ensure roles are seeded before users.');
       }
 
-      // Find the role IDs
-      const adminRole = roles.find((role) => role.name === constants.ROLES.ADMIN);
-      const studentRole = roles.find((role) => role.name === constants.ROLES.STUDENT);
-      const lecturerRole = roles.find((role) => role.name === constants.ROLES.LECTURER); // Find lecturer role
+      const adminRefreshTokenHash = await bcrypt.hash(uuidv4(), saltRounds);
+      const studentRefreshTokenHash = await bcrypt.hash(uuidv4(), saltRounds);
+      const lecturerRefreshTokenHash = await bcrypt.hash(uuidv4(), saltRounds);
 
-      if (!adminRole || !studentRole || !lecturerRole) {
-        throw new Error(
-          'Admin, Student, or Lecturer role not found in the database. Ensure roles are seeded and constants.mjs is correct.'
-        );
-      }
+      const usersToInsert = [
+        {
+          id: uuidv4(),
+          username: process.env.ADMIN_USERNAME || 'admin',
+          email: process.env.ADMIN_EMAIL || 'admin@example.com',
+          password: await bcrypt.hash(process.env.ADMIN_PASSWORD || 'Admin123!', saltRounds),
+          role_id: adminRole[0].id,
+          phone_number: '09037249306',
+          date_of_birth: new Date('1980-01-01'),
+          sex: USER_SEX_ENUM[0],
+          profile_picture_url: '/uploads/admin.jpg',
+          last_login: new Date(),
+          is_verified: true,
+          verification_token: uuidv4(),
+          verification_token_expiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          refresh_token_hash: adminRefreshTokenHash,
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+        {
+          id: uuidv4(),
+          username: process.env.STUDENT_USERNAME || 'student1',
+          email: process.env.STUDENT_EMAIL || 'student1@example.com',
+          password: await bcrypt.hash(process.env.STUDENT_PASSWORD || 'Student123!', saltRounds),
+          role_id: studentRole[0].id,
+          phone_number: '09014224975',
+          date_of_birth: new Date('2002-05-15'),
+          sex: USER_SEX_ENUM[1],
+          profile_picture_url: '/uploads/student1.jpg',
+          last_login: new Date(),
+          is_verified: true,
+          verification_token: uuidv4(),
+          verification_token_expiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          refresh_token_hash: studentRefreshTokenHash,
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+        {
+          id: uuidv4(),
+          username: process.env.LECTURER_USERNAME || 'lecturer1',
+          email: process.env.LECTURER_EMAIL || 'lecturer1@example.com',
+          password: await bcrypt.hash(process.env.LECTURER_PASSWORD || 'Lecturer123!', saltRounds),
+          role_id: lecturerRole[0].id,
+          phone_number: '555-123-4567',
+          date_of_birth: new Date('1985-08-20'),
+          sex: USER_SEX_ENUM[0],
+          profile_picture_url: '/uploads/lecturer1.jpg',
+          last_login: new Date(),
+          is_verified: true,
+          verification_token: uuidv4(),
+          verification_token_expiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          refresh_token_hash: lecturerRefreshTokenHash,
+          created_at: new Date(),
+          updated_at: new Date(),
+          department: "Computer Engineering Technology",
+        },
+        {
+          id: uuidv4(),
+          username: "lecturer2",
+          email: "lecturer2@example.com",
+          password: await bcrypt.hash("Lecturer2Pass!", saltRounds), // Replace with a secure password
+          role_id: lecturerRole[0].id,
+          department: "Computer Science & Information Technology",
+          phone_number: '555-987-6543',
+          date_of_birth: new Date('1978-03-10'),
+          sex: USER_SEX_ENUM[1],
+          profile_picture_url: '/uploads/lecturer2.jpg',
+          last_login: new Date(),
+          is_verified: true,
+          verification_token: uuidv4(),
+          verification_token_expiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          created_at: new Date(),
+          updated_at: new Date(),
+          refresh_token_hash: await bcrypt.hash(uuidv4(), saltRounds),
+        },
+        {
+          id: uuidv4(),
+          username: "lecturer3",
+          email: "lecturer3@example.com",
+          password: await bcrypt.hash("Lecturer3Pass!", saltRounds), // Replace with a secure password
+          role_id: lecturerRole[0].id,
+          department: "Computer Science & Information Technology",
+          phone_number: '555-555-1212',
+          date_of_birth: new Date('1990-11-22'),
+          sex: USER_SEX_ENUM[0],
+          profile_picture_url: '/uploads/lecturer3.jpg',
+          last_login: new Date(),
+          is_verified: true,
+          verification_token: uuidv4(),
+          verification_token_expiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          created_at: new Date(),
+          updated_at: new Date(),
+          refresh_token_hash: await bcrypt.hash(uuidv4(), saltRounds),
+        },
+        // ... add more lecturers as needed, ensuring emails match those in COURSES
+      ];
 
-      // Use environment variables for sensitive data and defaults for testing
-      const adminPassword = process.env.ADMIN_PASSWORD || 'AdminPass123!';
-      const studentPassword = process.env.STUDENT_PASSWORD || 'StudentPass123!';
-      const lecturerPassword = process.env.LECTURER_PASSWORD || 'LecturerPass123!'; // Lecturer password
-
-      // Hash passwords
-      const hashedAdminPassword = await bcrypt.hash(adminPassword, saltRounds);
-      const hashedStudentPassword = await bcrypt.hash(studentPassword, saltRounds);
-      const hashedLecturerPassword = await bcrypt.hash(lecturerPassword, saltRounds); // Hash lecturer password
-
-      await queryInterface.bulkInsert(
-        'Users',
-        [
-          {
-            id: process.env.ADMIN_USER_ID || uuidv4(), // Use env var or generate
-            username: 'admin',
-            email: process.env.ADMIN_EMAIL || 'admin@example.com',
-            password: hashedAdminPassword,
-            role_id: adminRole.id,
-            phone_number: process.env.ADMIN_PHONE || '+15551234567',
-            date_of_birth: process.env.ADMIN_DOB ? new Date(process.env.ADMIN_DOB) : new Date('1980-01-01'),
-            sex: process.env.ADMIN_SEX || constants.USER_SEX_ENUM[0], // Default to 'Male'
-            profile_picture_url: process.env.ADMIN_PIC || 'https://example.com/profile/admin.jpg',
-            reset_token: null,
-            reset_token_expiry: null,
-            is_verified: true,
-            verification_token: null,
-            verification_token_expiry: null,
-            created_at: new Date(),
-            updated_at: new Date(),
-          },
-          {
-            id: uuidv4(),
-            username: 'student',
-            email: process.env.STUDENT_EMAIL || 'student@example.com',
-            password: hashedStudentPassword,
-            role_id: studentRole.id,
-            phone_number: process.env.STUDENT_PHONE || '+15559876543',
-            date_of_birth: process.env.STUDENT_DOB ? new Date(process.env.STUDENT_DOB) : new Date('1995-05-20'),
-            sex: process.env.STUDENT_SEX || constants.USER_SEX_ENUM[1], // Default to 'Female'
-            profile_picture_url: process.env.STUDENT_PIC || 'https://example.com/profile/student.jpg',
-            reset_token: null,
-            reset_token_expiry: null,
-            refresh_token_hash: null,
-            is_verified: true,
-            verification_token: null,
-            verification_token_expiry: null,
-            created_at: new Date(),
-            updated_at: new Date(),
-          },
-          { // Add lecturer user
-            id: uuidv4(),
-            username: 'lecturer',
-            email: process.env.LECTURER_EMAIL || 'lecturer@example.com',
-            password: hashedLecturerPassword,
-            role_id: lecturerRole.id,
-            phone_number: process.env.LECTURER_PHONE || '+15554567890',
-            date_of_birth: process.env.LECTURER_DOB ? new Date(process.env.LECTURER_DOB) : new Date('1975-03-15'),
-            sex: process.env.LECTURER_SEX || constants.USER_SEX_ENUM[0], // Default to 'Male'
-            profile_picture_url: process.env.LECTURER_PIC || 'https://example.com/profile/lecturer.jpg',
-            reset_token: null,
-            reset_token_expiry: null,
-            refresh_token_hash: null,
-            is_verified: true,
-            verification_token: null,
-            verification_token_expiry: null,
-            created_at: new Date(),
-            updated_at: new Date(),
-          },
-        ],
-        {}
-      );
+      await queryInterface.bulkInsert('users', usersToInsert, { transaction });
+      await transaction.commit();
+      console.log('Users seeded successfully.');
     } catch (error) {
-      console.error('Error seeding users:', error.message);
-      throw error;
+      await transaction.rollback();
+      console.error('Error seeding users:', error);
     }
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.bulkDelete('Users', null, {});
+    try {
+      await queryInterface.bulkDelete('users', null, {});
+      console.log('Users table cleared.');
+    } catch (error) {
+      console.error('Error clearing users table:', error);
+    }
   },
 };

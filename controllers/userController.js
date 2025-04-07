@@ -15,7 +15,8 @@ class UserController {
 
   async getAllUsers(req, res, next) {
     try {
-      const users = await this.userService.getAllUsers(); 
+      const includeDeleted = req.query.includeDeleted === 'true';  // Check for query parameter
+      const users = await this.userService.getAllUsers(includeDeleted);  // Pass parameter to service
       res.status(200).json({ success: true, data: { users } });
     } catch (error) {
       _error(`Error in getAllUsers: ${error.message}`);
@@ -26,11 +27,12 @@ class UserController {
   async getUserById(req, res, next) {
     try {
       const { userId } = req.params;
+      const includeDeleted = req.query.includeDeleted === 'true'; // Check for query parameter
       // Validate userId format
       if (!validator.isUUID(userId)) {
         throw new ValidationError([{ field: 'userId', message: 'Invalid userId format' }]);
       }
-      const user = await this.userService.getUserById(userId);
+      const user = await this.userService.getUserById(userId, includeDeleted); // Pass parameter to service
       if (!user) {
         throw new UserNotFoundError();
       }
@@ -61,21 +63,26 @@ class UserController {
 
   async changePassword(req, res, next) {
     try {
-      const { userEmail } = req.params; // Changed from userId to userEmail
+      const { userId } = req.params; // Changed to userId
       const { currentPassword, newPassword } = req.body;
-      // No need to validate as email is validated in routes
+      // Validate userId format
+      if (!validator.isUUID(userId)) {
+        throw new ValidationError([{ field: 'userId', message: 'Invalid userId format' }]);
+      }
       if (!currentPassword || !newPassword) {
         throw new BadRequestError('Current password and new password are required');
       }
-      // Validate password length (you can keep this here or move to routes)
       if (!validator.isLength(newPassword, { min: 8 })) {
         throw new ValidationError([{ field: 'newPassword', message: 'Password must be at least 8 characters long' }]);
       }
-      const user = await this.userService.changePassword(userEmail, currentPassword, newPassword); // Pass userEmail
-      if (!user) {
+      const success = await this.userService.changePassword(userId, currentPassword, newPassword); // Pass userId
+      if (!success) {
         throw new InvalidCredentialsError();
       }
-      res.status(200).json({ success: true, message: 'Password changed successfully' });
+      res.status(200).json({
+        success: true,
+        message: 'Password changed successfully.', // Updated message
+      });
     } catch (error) {
       _error(`Error in changePassword: ${error.message}`);
       next(error);
@@ -89,10 +96,6 @@ class UserController {
       if (!validator.isUUID(userId)) {
         throw new ValidationError([{ field: 'userId', message: 'Invalid userId format' }]);
       }
-      const user = await this.userService.getUserById(userId);
-      if (!user) {
-        throw new UserNotFoundError();
-      }
       await this.userService.deleteUser(userId);
       res.status(204).send();
     } catch (error) {
@@ -100,7 +103,15 @@ class UserController {
       next(error);
     }
   }
+
   async getModifiedUsers(req, res, next) {
+    console.log('UserController.getModifiedUsers - Request:', {
+      method: req.method,
+      url: req.url,
+      path: req.path,
+      params: req.params,
+      query: req.query,
+    });
     try {
       const { since } = req.query;
       const modifiedUsers = await this.userService.getModifiedUsers(since);

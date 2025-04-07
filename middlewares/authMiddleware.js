@@ -8,6 +8,13 @@ const { jwt: _jwt } = config; // Correct: Destructure after default import
 import { ROLES } from '../config/constants.mjs';
 
 const authenticateToken = async (req, res, next) => {
+  console.log('authenticateToken - Request (before):', {
+    method: req.method,
+    url: req.url,
+    path: req.path,
+    params: req.params,
+    query: req.query,
+  });
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -28,6 +35,14 @@ const authenticateToken = async (req, res, next) => {
     }
     req.user = user;
     next();
+  });
+  console.log('authenticateToken - Request (after):', {
+    method: req.method,
+    url: req.url,
+    path: req.path,
+    params: req.params,
+    query: req.query,
+    user: req.user, // If req.user is set
   });
 };
 

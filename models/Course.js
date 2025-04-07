@@ -36,6 +36,22 @@ export default (sequelize) => {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: false,
+        field: 'is_departmental', // Ensure snake_case
+      },
+      departmentId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        field: 'department_id', // Ensure snake_case
+      },
+      levelId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        field: 'level_id', // Ensure snake_case
+      },
+      lecturerId: {
+        type: DataTypes.UUID,
+        allowNull: true, // Allow null initially, update after lecturer assignment
+        field: 'lecturer_id', // Ensure snake_case
       },
     },
     {
@@ -43,39 +59,44 @@ export default (sequelize) => {
       modelName: 'Course',
       tableName: 'courses',
       paranoid: true,
+      underscored: true, // Ensure snake_case for timestamps
     }
   );
 
   Course.associate = (models) => {
     Course.belongsTo(models.Department, {
       foreignKey: 'departmentId',
+      as: 'department', // Added alias
       onDelete: 'CASCADE',
       onUpdate: 'CASCADE',
     });
     Course.belongsTo(models.Level, {
       foreignKey: 'levelId',
+      as: 'level', // Added alias
       onDelete: 'CASCADE',
       onUpdate: 'CASCADE',
     });
     Course.belongsTo(models.User, {
       foreignKey: 'lecturerId',
-      onDelete: 'CASCADE',
-      onUpdate: 'CASCADE',
       as: 'lecturer',
+      onDelete: 'SET NULL', // Changed to SET NULL
+      onUpdate: 'CASCADE',
     });
     Course.hasMany(models.Assignment, {
       foreignKey: 'courseId',
+      as: 'assignments', // Added alias
       onDelete: 'CASCADE',
       onUpdate: 'CASCADE',
     });
     Course.hasMany(models.CourseMaterial, {
       foreignKey: 'courseId',
+      as: 'materials',
       onDelete: 'CASCADE',
       onUpdate: 'CASCADE',
-      as: 'materials',
     });
     Course.hasMany(models.Announcement, {
       foreignKey: 'courseId',
+      as: 'announcements', // Added alias
       onDelete: 'CASCADE',
       onUpdate: 'CASCADE',
     });

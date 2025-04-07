@@ -7,13 +7,13 @@ export default (sequelize) => {
       ChatMessage.belongsTo(models.Chat, {
         foreignKey: 'chatId',
         as: 'chat',
-        onDelete: 'CASCADE', 
+        onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
       ChatMessage.belongsTo(models.User, {
-        foreignKey: 'userId',  
+        foreignKey: 'userId',
         as: 'sender',
-        onDelete: 'CASCADE', 
+        onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
     }
@@ -29,35 +29,24 @@ export default (sequelize) => {
       chatId: {
         type: DataTypes.UUID,
         allowNull: false,
+        field: 'chat_id', // Ensure snake_case
       },
       content: {
         type: DataTypes.TEXT,
         allowNull: false,
       },
-      userId: { 
+      userId: {
         type: DataTypes.UUID,
         allowNull: false,
-      },
-      // Optional explicit timestamps (auto-added by Sequelize if configured)
-      created_at: {
-        type: DataTypes.DATE,
-        allowNull: false,
-      },
-      updated_at: {
-        type: DataTypes.DATE,
-        allowNull: false,
-      },
-      deleted_at: {
-        type: DataTypes.DATE,
-        allowNull: true,
+        field: 'user_id', // Ensure snake_case
       },
     },
     {
       sequelize,
       modelName: 'ChatMessage',
-      tableName: 'ChatMessages',
+      tableName: 'chat_messages', // Corrected table name to snake_case
       paranoid: true,
-      timestamps: true,
+      underscored: true, // Ensure snake_case for timestamps
     }
   );
 

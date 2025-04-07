@@ -7,9 +7,13 @@ const { redis: _redis } = config; // Correct: Destructure after default import
 
 const redis = new Redis(_redis);
 
-export const addToken = async (token, expiry) => {
+export const addToBlacklist = async (token, expiry) => { // expiry is now optional
   try {
-    await redis.set(token, 'blacklisted', 'EX', expiry);
+    if (expiry !== undefined && expiry > 0) {
+      await redis.set(token, 'blacklisted', 'EX', expiry); // Set with expiry if provided and > 0
+    } else {
+      await redis.set(token, 'blacklisted'); // Set without expiry for indefinite blacklisting
+    }
   } catch (error) {
     logger.error(`Error adding token to blacklist: ${error.message}`);
     throw error;

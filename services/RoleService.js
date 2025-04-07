@@ -1,6 +1,8 @@
 // ptilms-api/services/RoleService.js
+// ptilms-api/services/RoleService.js
 import { NotFoundError } from '../utils/errors.js';
 import { error as _error } from '../utils/logger.js';
+import logger from '../utils/logger.js';
 
 class RoleService {
   constructor({ roleRepository }) {
@@ -60,6 +62,22 @@ class RoleService {
     } catch (error) {
       _error(`Error in deleteRole: ${error.message}`);
       throw error;
+    }
+  }
+
+  async createDefaultRoles() {
+    try {
+      const existingRoles = await this.roleRepository.getAllRoles(); // Use the repository
+      if (existingRoles.length === 0) {
+        const roleNames = ['admin', 'instructor', 'student']; // Or however you get ROLE_NAMES
+        await this.roleRepository.bulkCreate(roleNames.map(name => ({ name }))); // Use the repository
+        logger.info('Default roles created.'); // Use the imported logger
+      } else {
+        logger.info('Default roles already exist.'); // Use the imported logger
+      }
+    } catch (error) {
+      logger.error(`Error creating default roles: ${error.message}`); // Use the imported logger
+      throw error; // Re-throw the error to propagate it
     }
   }
 }

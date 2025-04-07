@@ -4,17 +4,28 @@ import { ROLE_NAMES } from '../config/constants.mjs';
 
 export default {
   async up(queryInterface, Sequelize) {
-    await queryInterface.bulkInsert(
-      'Roles',
-      ROLE_NAMES.map((roleName) => ({
-        id: uuidv4(),
-        name: roleName,
-        created_at: new Date(),
-        updated_at: new Date(),
-      }))
-    );
+    const rolesToInsert = ROLE_NAMES.map(roleName => ({
+      id: uuidv4(),
+      name: roleName,
+      created_at: new Date(),
+      updated_at: new Date(),
+    }));
+
+    try {
+      await queryInterface.bulkDelete('roles', null, {}); // Clear existing data
+      await queryInterface.bulkInsert('roles', rolesToInsert, {});
+      console.log('Roles seeded successfully.');
+    } catch (error) {
+      console.error('Error seeding roles:', error);
+    }
   },
+
   async down(queryInterface, Sequelize) {
-    await queryInterface.bulkDelete('Roles', null, {});
+    try {
+      await queryInterface.bulkDelete('roles', null, {});
+      console.log('Roles table cleared.');
+    } catch (error) {
+      console.error('Error clearing roles table:', error);
+    }
   },
 };

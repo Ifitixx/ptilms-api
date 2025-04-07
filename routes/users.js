@@ -11,6 +11,44 @@ const router = Router();
 export default (userController) => {
   /**
    * @swagger
+   * /users/modified:
+   *   get:
+   *     summary: Get modified users since a specific date
+   *     tags: [Users]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: since
+   *         schema:
+   *           type: string
+   *           format: date-time
+   *         required: false  # Changed to false to make it optional
+   *         description: Date and time to filter modified users
+   *     responses:
+   *       200:
+   *         description: Modified users found
+   *       400:
+   *         description: Bad request
+   *       401:
+   *         description: Unauthorized
+   *       403:
+   *         description: Forbidden
+   *       500:
+   *         description: Internal server error
+   */
+  router.get(
+    '/modified',
+    authenticateToken,
+    authorizeRole(['admin']),
+    validate([
+      query('since').optional().isISO8601().withMessage('Invalid date format for "since" parameter'), // Added optional()
+    ]),
+    (req, res, next) => userController.getModifiedUsers(req, res, next)
+  );
+
+  /**
+   * @swagger
    * /users:
    *   get:
    *     summary: Get all users
@@ -31,7 +69,7 @@ export default (userController) => {
     '/',
     authenticateToken,
     authorizeRole(['admin']),
-    (req, res, next) => userController.getAllUsers(req, res, next) // Arrow function
+    (req, res, next) => userController.getAllUsers(req, res, next)
   );
 
   /**
@@ -70,7 +108,7 @@ export default (userController) => {
     validate([
       param('userId').isUUID().withMessage('Invalid user ID format'),
     ]),
-    (req, res, next) => userController.getUserById(req, res, next) // Arrow function
+    (req, res, next) => userController.getUserById(req, res, next)
   );
 
   /**
@@ -115,11 +153,6 @@ export default (userController) => {
    */
   router.put(
     '/:userId',
-    validate([
-      param('userId').isUUID(),
-      body('email').optional().isEmail(),
-      body('username').optional().isLength({ min: 3 })
-    ]),
     authenticateToken,
     authorizeRole(['admin']),
     validate([
@@ -127,7 +160,7 @@ export default (userController) => {
       body('username').optional().trim().isLength({ min: 3, max: 50 }).withMessage('Username must be between 3 and 50 characters'),
       body('email').optional().trim().isEmail().withMessage('Invalid email format'),
     ]),
-    (req, res, next) => userController.updateUser(req, res, next) // Arrow function
+    (req, res, next) => userController.updateUser(req, res, next)
   );
 
   /**
@@ -171,11 +204,11 @@ export default (userController) => {
    *         description: Internal server error
    */
   router.put(
-    '/:userEmail/change-password', // Changed route parameter name to userEmail
+    '/:userId/change-password', // Changed route parameter to userId
     authenticateToken,
     authorizeRole(['admin', 'lecturer', 'student']),
     validate([
-      param('userEmail').isEmail().withMessage('Invalid email format'), // Changed validation to isEmail
+      param('userId').isUUID().withMessage('Invalid user ID format'), // Changed validation to isUUID
       body('currentPassword').trim().notEmpty().withMessage('Current password is required'),
       body('newPassword').trim().notEmpty().withMessage('New password is required').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
         .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-])[A-Za-z\d!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]{8,}$/).withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
@@ -199,7 +232,7 @@ export default (userController) => {
    *         required: true
    *         description: ID of the user
    *     responses:
-   *       200:
+   *       204:  # Updated response code to 204
    *         description: User deleted successfully
    *       400:
    *         description: Bad request
@@ -219,45 +252,7 @@ export default (userController) => {
     validate([
       param('userId').isUUID().withMessage('Invalid user ID format'),
     ]),
-    (req, res, next) => userController.deleteUser(req, res, next) // Arrow function
-  );
-
-  /**
-   * @swagger
-   * /users/modified:
-   *   get:
-   *     summary: Get modified users since a specific date
-   *     tags: [Users]
-   *     security:
-   *       - bearerAuth: []
-   *     parameters:
-   *       - in: query
-   *         name: since
-   *         schema:
-   *           type: string
-   *           format: date-time
-   *         required: true
-   *         description: Date and time to filter modified users
-   *     responses:
-   *       200:
-   *         description: Modified users found
-   *       400:
-   *         description: Bad request
-   *       401:
-   *         description: Unauthorized
-   *       403:
-   *         description: Forbidden
-   *       500:
-   *         description: Internal server error
-   */
-  router.get(
-    '/modified',
-    authenticateToken,
-    authorizeRole(['admin']),
-    validate([
-      query('since').isISO8601().withMessage('Invalid date format for "since" parameter'),
-    ]),
-    (req, res, next) => userController.getModifiedUsers(req, res, next) // Arrow function
+    (req, res, next) => userController.deleteUser(req, res, next)
   );
 
   return router;

@@ -78,33 +78,46 @@ export const COURSES = [
     code: "COM101",
     format: "Lecture",
     description: "Basic programming concepts",
-    department: DEPARTMENT_NAMES[0],
-    level: LEVEL_NAMES[0],
+    department: "Computer Engineering Technology",
+    level: "ND1",
+    isDepartmental: true,
+    units: 3,
+    lecturerEmail: "ifitisprosper@outlook.com", // Specific lecturer for this course
   },
   {
     title: "Data Structures and Algorithms",
     code: "COM201",
     format: "Lecture",
     description: "Advanced data structures",
-    department: DEPARTMENT_NAMES[0],
-    level: LEVEL_NAMES[1],
+    department: "Computer Science & Information Technology",
+    level: "ND2",
+    isDepartmental: true,
+    units: 4,
+    lecturerEmail: "ifitisprosper@outlook.com", // Specific lecturer
   },
   {
     title: "Database Management Systems",
     code: "COM301",
     format: "Lecture",
     description: "Database design and management",
-    department: DEPARTMENT_NAMES[1],
-    level: LEVEL_NAMES[2],
+    department: "Computer Science & Information Technology",
+    level: "HND1",
+    isDepartmental: true,
+    units: 3,
+    lecturerEmail: "ifitisprosper@outlook.com", // Specific lecturer
   },
   {
     title: "Web Development",
     code: "COM401",
     format: "Lecture",
     description: "Full-stack web development",
-    department: DEPARTMENT_NAMES[1],
-    level: LEVEL_NAMES[3],
+    department: "Computer Engineering Technology",
+    level: "HND2",
+    isDepartmental: true,
+    units: 4,
+    lecturerEmail: "ifitisprosper@outlook.com", // Specific lecturer
   },
+  // ... add more courses and assign lecturers by email
 ];
 
 // Assignments
@@ -113,25 +126,25 @@ export const ASSIGNMENTS = [
     title: "Programming Assignment 1",
     description: "Implement basic programming concepts",
     courseCode: "COM101",
-    dueInDays: 7,
+    dueInDays: 1,
   },
   {
     title: "Data Structures Assignment",
     description: "Implement linked lists",
     courseCode: "COM201",
-    dueInDays: 14,
+    dueInDays: 2,
   },
   {
     title: "Database Design Assignment",
     description: "Design a database schema",
     courseCode: "COM301",
-    dueInDays: 10,
+    dueInDays: 3,
   },
   {
     title: "Web Development Project",
     description: "Build a full-stack web application",
     courseCode: "COM401",
-    dueInDays: 21,
+    dueInDays: 7,
   },
 ];
 
@@ -140,10 +153,12 @@ export const ANNOUNCEMENTS = [
   {
     title: "Welcome to the New Semester!",
     content: "We are excited to start a new semester with you all.",
+    courseCode: "COM101", // Associate with a course
   },
   {
     title: "Important Notice: Midterm Exams",
     content: "Midterm exams will be held from [Start Date] to [End Date].",
+    courseCode: "COM201", // Associate with a course
   },
 ];
 
@@ -153,11 +168,11 @@ export const CHAT_TYPES = {
   PRIVATE: "private",
 };
 export const CHATS = [
-  { name: "General Chat" },
-  { name: "COM101 Chat" },
-  { name: "COM201 Chat" },
-  { name: "COM301 Chat" },
-  { name: "COM401 Chat" },
+  { name: "General Chat", communicationType: CHAT_TYPES.GROUP },
+  { name: "COM101 Chat", communicationType: CHAT_TYPES.GROUP },
+  { name: "COM201 Chat", communicationType: CHAT_TYPES.GROUP },
+  { name: "COM301 Chat", communicationType: CHAT_TYPES.GROUP },
+  { name: "COM401 Chat", communicationType: CHAT_TYPES.GROUP },
 ];
 export const CHAT_MESSAGES = [
   { content: "Hello everyone!", chatName: "General Chat" },

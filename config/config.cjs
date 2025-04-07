@@ -1,4 +1,3 @@
-// ptilms-api/config/config.cjs
 const { config } = require('dotenv');
 config();
 
@@ -8,6 +7,9 @@ if (!process.env.JWT_SECRET) {
 }
 if (!process.env.JWT_REFRESH_SECRET) {
   throw new Error('Error: JWT_REFRESH_SECRET environment variable is not set.');
+}
+if (!process.env.DATABASE_URL) {
+  throw new Error('Error: DATABASE_URL environment variable is not set.');
 }
 
 module.exports = {
@@ -29,7 +31,7 @@ module.exports = {
     name: process.env.DB_NAME || process.env.DATABASE_URL.split('/').pop().split('?')[0],
     dialect: 'mysql',
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
+    port: parseInt(process.env.DB_PORT, 10) || 3306, // Added parseInt and default port
     username: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     define: {
@@ -37,6 +39,8 @@ module.exports = {
       timestamps: true,       // Enables `created_at` and `updated_at` by default
       createdAt: 'created_at', // Custom name for the "created at" column
       updatedAt: 'updated_at', // Custom name for the "updated at" column
+      deletedAt: 'deleted_at', // Custom name for the "deleted at" column
+      paranoid: true,          // Enables soft deletes
     }
   },
   redis: {

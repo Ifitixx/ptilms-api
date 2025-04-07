@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
 import validationMiddleware from '../middlewares/validationMiddleware.js';
-const { validate } = validationMiddleware;
+const validate = validationMiddleware.validate;
 import _default from '../middlewares/rateLimiter.js';
 const { loginLimiter } = _default;
 import { USER_SELECTABLE_ROLES } from '../config/constants.mjs';
@@ -114,7 +114,7 @@ export default (authController) => {
   router.post(
     '/login',
     loginLimiter,
-    validate([
+    validationMiddleware.validate([
       body('email')
         .trim()
         .notEmpty().withMessage('Email cannot be empty')

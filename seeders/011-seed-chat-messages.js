@@ -1,58 +1,61 @@
 // ptilms-api/seeders/011-seed-chat-messages.js
 import { v4 as uuidv4 } from 'uuid';
-import * as constants from '../config/constants.mjs';
+import { CHAT_MESSAGES } from '../config/constants.mjs';
 
 export default {
   async up(queryInterface, Sequelize) {
     const transaction = await queryInterface.sequelize.transaction();
     try {
-      // Get all users
-      const users = await queryInterface.sequelize.query(
-        `SELECT id FROM Users;`,
-        { type: queryInterface.sequelize.QueryTypes.SELECT, transaction }
-      );
+      await queryInterface.bulkDelete('chat_messages', null, { transaction }); // Clear existing data
+
+      // Fetch chats and a user (e.g., admin) to associate with messages
+      const [chats, users] = await Promise.all([
+        queryInterface.sequelize.query(`SELECT id, name FROM Chats;`, {
+          type: queryInterface.sequelize.QueryTypes.SELECT,
+          transaction,
+        }),
+        queryInterface.sequelize.query(`SELECT id FROM Users LIMIT 1;`, { // Fetch a single user (e.g., admin)
+          type: queryInterface.sequelize.QueryTypes.SELECT,
+          transaction,
+        }),
+      ]);
+
       if (users.length === 0) {
-        throw new Error('No users found to associate with chat messages.');
+        throw new Error('No users found. Ensure users are seeded before chat messages.');
       }
+      const userId = users[0].id; // Use the ID of the fetched user
 
-      // Get all chats
-      const chats = await queryInterface.sequelize.query(
-        `SELECT id, name FROM Chats;`,
-        { type: queryInterface.sequelize.QueryTypes.SELECT, transaction }
-      );
-
-      // Helper function to find user and chat IDs
-      const findUserId = () => {
-        // Select a random user
-        const randomIndex = Math.floor(Math.random() * users.length);
-        return users[randomIndex].id;
-      };
-      const findChatId = (chatName) => {
-        const chat = chats.find((chat) => chat.name === chatName);
+      const chatMessagesToInsert = CHAT_MESSAGES.map((chatMessage) => {
+        const chat = chats.find((c) => c.name === chatMessage.chatName);
         if (!chat) {
-          throw new Error(`Chat not found: ${chatName}`);
+          throw new Error(`Chat with name "${chatMessage.chatName}" not found. Ensure chats are seeded first.`);
         }
-        return chat.id;
-      };
 
-      const chatMessagesToInsert = constants.CHAT_MESSAGES.map((message) => ({
-        id: uuidv4(),
-        content: message.content,
-        user_id: findUserId(),
-        chat_id: findChatId(message.chatName),
-        created_at: new Date(),
-        updated_at: new Date(),
-      }));
+        return {
+          id: uuidv4(),
+          content: chatMessage.content,
+          user_id: userId, // Use the fetched user ID
+          chat_id: chat.id,
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+      });
 
-      await queryInterface.bulkInsert('ChatMessages', chatMessagesToInsert, { transaction });
-
+      await queryInterface.bulkInsert('chat_messages', chatMessagesToInsert, { transaction });
       await transaction.commit();
+      console.log('Chat messages seeded successfully.');
     } catch (error) {
       await transaction.rollback();
-      throw error;
+      console.error('Error seeding chat messages:', error);
     }
   },
+
   async down(queryInterface, Sequelize) {
-    await queryInterface.bulkDelete('ChatMessages', null, {});
+    try {
+      await queryInterface.bulkDelete('chat_messages', null, {});
+      console.log('Chat messages table cleared.');
+    } catch (error) {
+      console.error('Error clearing chat messages table:', error);
+    }
   },
 };

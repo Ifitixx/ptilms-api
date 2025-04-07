@@ -31,10 +31,12 @@ export default (sequelize) => {
       dueDate: {
         type: DataTypes.DATE,
         allowNull: false,
+        field: 'due_date', // Ensure snake_case
       },
       courseId: {
         type: DataTypes.UUID,
         allowNull: false,
+        field: 'course_id', // Ensure snake_case
       },
     },
     {
@@ -42,6 +44,7 @@ export default (sequelize) => {
       modelName: 'Assignment',
       tableName: 'assignments',
       paranoid: true,
+      underscored: true, // Ensure snake_case for timestamps
     }
   );
 

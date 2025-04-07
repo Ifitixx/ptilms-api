@@ -7,7 +7,7 @@ export default (sequelize) => {
       Department.hasMany(models.Course, {
         foreignKey: 'departmentId',
         as: 'courses',
-        onDelete: 'CASCADE', 
+        onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
     }
@@ -23,6 +23,7 @@ export default (sequelize) => {
       name: {
         type: DataTypes.STRING,
         allowNull: false,
+        unique: true,
       },
     },
     {
@@ -30,6 +31,7 @@ export default (sequelize) => {
       modelName: 'Department',
       tableName: 'departments',
       paranoid: true,
+      underscored: true, // Ensure snake_case for timestamps
     }
   );
 

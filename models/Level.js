@@ -7,7 +7,7 @@ export default (sequelize) => {
       Level.hasMany(models.Course, {
         foreignKey: 'levelId',
         as: 'courses',
-        onDelete: 'CASCADE', 
+        onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
     }
@@ -23,6 +23,7 @@ export default (sequelize) => {
       name: {
         type: DataTypes.STRING,
         allowNull: false,
+        unique: true,
       },
     },
     {
@@ -30,6 +31,7 @@ export default (sequelize) => {
       modelName: 'Level',
       tableName: 'levels',
       paranoid: true,
+      underscored: true, // Ensure snake_case for timestamps
     }
   );
 

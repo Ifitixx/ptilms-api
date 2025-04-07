@@ -3,7 +3,7 @@ import { DataTypes } from 'sequelize';
 
 export default {
   async up(queryInterface) {
-    await queryInterface.createTable('RolePermissions', {
+    await queryInterface.createTable('role_permissions', { // Corrected table name to snake_case
       id: {
         allowNull: false,
         primaryKey: true,
@@ -45,6 +45,6 @@ export default {
     });
   },
   async down(queryInterface) {
-    await queryInterface.dropTable('RolePermissions');
+    await queryInterface.dropTable('role_permissions'); // Corrected table name to snake_case
   },
 };

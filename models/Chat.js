@@ -8,7 +8,7 @@ export default (sequelize) => {
       Chat.hasMany(models.ChatMessage, {
         foreignKey: 'chatId',
         as: 'messages',
-        onDelete: 'CASCADE', 
+        onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
     }
@@ -22,8 +22,9 @@ export default (sequelize) => {
         primaryKey: true,
       },
       communicationType: {
-        type: DataTypes.ENUM(...Object.values(CHAT_TYPES)), 
+        type: DataTypes.ENUM(...Object.values(CHAT_TYPES)),
         allowNull: false,
+        field: 'communication_type', // Ensure snake_case
       },
       name: {
         type: DataTypes.STRING,
@@ -35,6 +36,7 @@ export default (sequelize) => {
       modelName: 'Chat',
       tableName: 'chats',
       paranoid: true,
+      underscored: true, // Ensure snake_case for timestamps
     }
   );
 

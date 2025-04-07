@@ -3,7 +3,7 @@ import { DataTypes } from 'sequelize';
 
 export default {
   async up(queryInterface) {
-    await queryInterface.createTable('ChatMessages', {
+    await queryInterface.createTable('chat_messages', { // Corrected table name to snake_case
       id: {
         allowNull: false,
         primaryKey: true,
@@ -49,6 +49,6 @@ export default {
     });
   },
   async down(queryInterface) {
-    await queryInterface.dropTable('ChatMessages');
+    await queryInterface.dropTable('chat_messages'); // Corrected table name to snake_case
   },
 };

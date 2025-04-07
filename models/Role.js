@@ -11,6 +11,7 @@ export default (sequelize) => {
       Role.belongsToMany(models.Permission, {
         through: models.RolePermission,
         foreignKey: 'roleId',
+        otherKey: 'permissionId',
         as: 'permissions',
       });
     }
@@ -19,7 +20,7 @@ export default (sequelize) => {
   Role.init(
     {
       id: {
-        type: DataTypes.UUID, 
+        type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
       },
@@ -33,9 +34,8 @@ export default (sequelize) => {
       sequelize,
       modelName: 'Role',
       tableName: 'roles',
-      timestamps: true,
-      underscored: true,
       paranoid: true,
+      underscored: true, // Ensure snake_case for timestamps
     }
   );
 

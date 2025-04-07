@@ -30,9 +30,13 @@ const errorHandler = (err, req, res, next) => {
     statusCode = 400;
     message = 'Database Validation Error';
     errors = err.errors.map((e) => ({ field: e.path, message: e.message }));
-  }  else if (err instanceof ConflictError) { // Modified this block
+  } else if (err.name === 'SequelizeUniqueConstraintError') {
     statusCode = 409;
-    message = err.message; // Use the message from the ConflictError
+    message = 'Database Unique Constraint Error';
+    errors = err.errors.map(e => ({ field: e.path, message: e.message }));
+  } else if (err instanceof ConflictError) {
+    statusCode = 409;
+    message = err.message;
   } else if (err instanceof JsonWebTokenError) {
     statusCode = 401;
     message = 'Invalid token';

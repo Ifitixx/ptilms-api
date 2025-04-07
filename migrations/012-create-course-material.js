@@ -4,7 +4,7 @@ import { COURSES_MATERIAL_TYPES } from '../config/constants.mjs';
 
 export default {
   async up(queryInterface) {
-    await queryInterface.createTable('CourseMaterials', {
+    await queryInterface.createTable('course_materials', { // Corrected table name to snake_case
       id: {
         allowNull: false,
         primaryKey: true,
@@ -52,6 +52,6 @@ export default {
     });
   },
   async down(queryInterface) {
-    await queryInterface.dropTable('CourseMaterials');
+    await queryInterface.dropTable('course_materials'); // Corrected table name to snake_case
   },
 };

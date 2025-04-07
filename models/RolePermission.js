@@ -7,13 +7,13 @@ export default (sequelize) => {
       RolePermission.belongsTo(models.Role, {
         foreignKey: 'roleId',
         as: 'role',
-        onDelete: 'CASCADE', 
+        onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
       RolePermission.belongsTo(models.Permission, {
         foreignKey: 'permissionId',
         as: 'permission',
-        onDelete: 'CASCADE', 
+        onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
     }
@@ -29,31 +29,20 @@ export default (sequelize) => {
       roleId: {
         type: DataTypes.UUID,
         allowNull: false,
+        field: 'role_id', // Ensure snake_case
       },
       permissionId: {
         type: DataTypes.UUID,
         allowNull: false,
-      },
-      // Optional explicit timestamps (Sequelize auto-adds these with your config)
-      created_at: {
-        type: DataTypes.DATE,
-        allowNull: false,
-      },
-      updated_at: {
-        type: DataTypes.DATE,
-        allowNull: false,
-      },
-      deleted_at: {
-        type: DataTypes.DATE,
-        allowNull: true,
+        field: 'permission_id', // Ensure snake_case
       },
     },
     {
       sequelize,
       modelName: 'RolePermission',
-      tableName: 'RolePermissions',
+      tableName: 'role_permissions', // Corrected table name to snake_case
       paranoid: true,
-      timestamps: true,
+      underscored: true, // Ensure snake_case for timestamps
     }
   );
 

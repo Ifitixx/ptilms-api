@@ -4,7 +4,7 @@ import { USER_USERNAME_MAX_LENGTH, USER_EMAIL_MAX_LENGTH, USER_SEX_ENUM } from '
 
 export default {
   async up(queryInterface) {
-    await queryInterface.createTable('Users', {
+    await queryInterface.createTable('users', {
       id: {
         allowNull: false,
         primaryKey: true,
@@ -25,7 +25,7 @@ export default {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      role_id: { 
+      role_id: {
         type: DataTypes.UUID,
         allowNull: true,
         references: {
@@ -35,11 +35,11 @@ export default {
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE',
       },
-      phone_number: { 
+      phone_number: {
         type: DataTypes.STRING,
         allowNull: true,
       },
-      date_of_birth: { 
+      date_of_birth: {
         type: DataTypes.DATE,
         allowNull: true,
       },
@@ -47,54 +47,59 @@ export default {
         type: DataTypes.ENUM(...USER_SEX_ENUM),
         allowNull: true,
       },
-      profile_picture_url: { 
+      profile_picture_url: {
         type: DataTypes.STRING,
         allowNull: true,
       },
-      reset_token: { 
+      reset_token: {
         type: DataTypes.STRING,
         allowNull: true,
       },
-      reset_token_expiry: { 
+      reset_token_expiry: {
         type: DataTypes.DATE,
         allowNull: true,
       },
       refresh_token_hash: {
         type: DataTypes.STRING,
-        allowNull: true, 
+        allowNull: false, // Corrected to allowNull: false
       },
-      last_login: { 
+      last_login: {
         type: DataTypes.DATE,
         allowNull: true,
       },
-      is_verified: { 
+      is_verified: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
       verification_token: {
-        type: DataTypes.STRING, 
+        type: DataTypes.STRING,
         allowNull: true,
-        unique: true, 
+        unique: true,
       },
-      verification_token_expiry: {  
+      verification_token_expiry: {
         type: DataTypes.DATE,
         allowNull: true,
       },
-      created_at: { 
+      created_at: {
         allowNull: false,
         type: DataTypes.DATE,
       },
-      updated_at: { 
+      updated_at: {
         allowNull: false,
         type: DataTypes.DATE,
       },
-      deleted_at: { 
+      deleted_at: {
         type: DataTypes.DATE,
+        allowNull: true,
+      },
+      // Add department column
+      department: {
+        type: DataTypes.STRING,
         allowNull: true,
       },
     });
   },
   async down(queryInterface) {
-    await queryInterface.dropTable('Users');
+    await queryInterface.dropTable('users');
   },
 };

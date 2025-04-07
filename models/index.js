@@ -13,6 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const sequelize = new Sequelize(database.url, {
+  ...database, // Use all database configurations from config
   logging: (msg) => info(msg),
 });
 

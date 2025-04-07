@@ -3,7 +3,7 @@ import { DataTypes } from 'sequelize';
 
 export default {
   async up(queryInterface) {
-    await queryInterface.createTable('Roles', {
+    await queryInterface.createTable('roles', {
       id: {
         allowNull: false,
         primaryKey: true,
@@ -30,6 +30,6 @@ export default {
     });
   },
   async down(queryInterface) {
-    await queryInterface.dropTable('Roles');
+    await queryInterface.dropTable('roles');
   },
 };

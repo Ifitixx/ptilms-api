@@ -37,10 +37,12 @@ export default (sequelize) => {
       userId: {
         type: DataTypes.UUID,
         allowNull: false,
+        field: 'user_id', // Ensure snake_case
       },
       courseId: {
         type: DataTypes.UUID,
         allowNull: false,
+        field: 'course_id', // Ensure snake_case
       },
     },
     {
@@ -48,6 +50,7 @@ export default (sequelize) => {
       modelName: 'Announcement',
       tableName: 'announcements',
       paranoid: true,
+      underscored: true, // Ensure snake_case for timestamps
     }
   );
 

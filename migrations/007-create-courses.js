@@ -3,7 +3,7 @@ import { DataTypes } from 'sequelize';
 
 export default {
   async up(queryInterface) {
-    await queryInterface.createTable('Courses', {
+    await queryInterface.createTable('courses', {
       id: {
         allowNull: false,
         primaryKey: true,
@@ -27,8 +27,19 @@ export default {
         type: DataTypes.TEXT,
         allowNull: true,
       },
+      units: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      },
+      is_departmental: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
       department_id: {
         type: DataTypes.UUID,
+        allowNull: false,
         references: {
           model: 'Departments',
           key: 'id',
@@ -38,12 +49,23 @@ export default {
       },
       level_id: {
         type: DataTypes.UUID,
+        allowNull: false,
         references: {
           model: 'Levels',
           key: 'id',
         },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE',
+      },
+      lecturer_id: {
+        type: DataTypes.UUID,
+        allowNull: true, // Allow null initially
+        references: {
+          model: 'Users',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL', // Changed to SET NULL
       },
       created_at: {
         allowNull: false,
@@ -60,6 +82,6 @@ export default {
     });
   },
   async down(queryInterface) {
-    await queryInterface.dropTable('Courses');
+    await queryInterface.dropTable('courses');
   },
 };

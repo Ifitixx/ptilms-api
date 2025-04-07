@@ -15,7 +15,7 @@ export default (sequelize) => {
     },
     description: {
       type: DataTypes.TEXT,
-      allowNull: true,  // Set explicitly to match migration
+      allowNull: true,
     },
     type: {
       type: DataTypes.ENUM(...Object.values(COURSES_MATERIAL_TYPES)),
@@ -25,35 +25,23 @@ export default (sequelize) => {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    courseId: {  // Explicitly define the foreign key (maps to course_id)
+    courseId: {
       type: DataTypes.UUID,
       allowNull: false,
-    },
-    // Optional explicit timestamps (Sequelize adds these automatically if enabled)
-    created_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-    },
-    updated_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-    },
-    deleted_at: {
-      type: DataTypes.DATE,
-      allowNull: true,
+      field: 'course_id', // Ensure snake_case
     },
   },
   {
-    tableName: 'CourseMaterials',
-    timestamps: true,
+    tableName: 'course_materials', // Corrected table name to snake_case
     paranoid: true,
+    underscored: true, // Ensure snake_case for timestamps
   });
 
   CourseMaterial.associate = (models) => {
     CourseMaterial.belongsTo(models.Course, {
       foreignKey: 'courseId',
+      as: 'course', // Added alias
       onDelete: 'CASCADE',
-      as: 'Course', 
     });
   };
 

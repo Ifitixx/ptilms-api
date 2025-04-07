@@ -1,130 +1,60 @@
 // ptilms-api/seeders/004-seed-role-permissions.js
 import { v4 as uuidv4 } from 'uuid';
-import * as constants from '../config/constants.mjs';
+import { ROLES, PERMISSIONS } from '../config/constants.mjs';
 
 export default {
   async up(queryInterface, Sequelize) {
     const transaction = await queryInterface.sequelize.transaction();
     try {
-      // Get all roles
-      const roles = await queryInterface.sequelize.query(
-        `SELECT id, name FROM Roles;`,
-        { type: queryInterface.sequelize.QueryTypes.SELECT, transaction }
-      );
+      await queryInterface.bulkDelete('role_permissions', null, { transaction }); // Clear existing data
 
-      // Get all permissions
-      const permissions = await queryInterface.sequelize.query(
-        `SELECT id, name FROM Permissions;`,
-        { type: queryInterface.sequelize.QueryTypes.SELECT, transaction }
-      );
+      // Fetch roles and permissions
+      const [roles, permissions] = await Promise.all([
+        queryInterface.sequelize.query(`SELECT id, name FROM Roles;`, {
+          type: queryInterface.sequelize.QueryTypes.SELECT,
+          transaction,
+        }),
+        queryInterface.sequelize.query(`SELECT id, name FROM Permissions;`, {
+          type: queryInterface.sequelize.QueryTypes.SELECT,
+          transaction,
+        }),
+      ]);
 
-      // Helper function to find role and permission IDs
-      const findRoleId = (roleName) => {
-        const role = roles.find((r) => r.name === roleName);
-        if (!role) {
-          throw new Error(`Role not found: ${roleName}`);
-        }
-        return role.id;
-      };
+      const adminRole = roles.find((role) => role.name === ROLES.ADMIN);
+      if (!adminRole) {
+        throw new Error(`Role "${ROLES.ADMIN}" not found. Ensure roles are seeded first.`);
+      }
 
-      const findPermissionId = (permissionName) => {
+      // Assign all permissions to admin role
+      const rolePermissionsToInsert = Object.values(PERMISSIONS).map((permissionName) => {
         const permission = permissions.find((p) => p.name === permissionName);
         if (!permission) {
-          throw new Error(`Permission not found: ${permissionName}`);
+          throw new Error(`Permission "${permissionName}" not found. Ensure permissions are seeded first.`);
         }
-        return permission.id;
-      };
-
-      const rolePermissionsToInsert = [];
-
-      // Admin Permissions (all permissions)
-      const adminRoleId = findRoleId(constants.ROLES.ADMIN);
-      Object.values(constants.PERMISSIONS).forEach((permission) => {
-        rolePermissionsToInsert.push({
+        return {
           id: uuidv4(),
-          role_id: adminRoleId,
-          permission_id: findPermissionId(permission),
+          role_id: adminRole.id,
+          permission_id: permission.id,
           created_at: new Date(),
           updated_at: new Date(),
-        });
+        };
       });
 
-      // Lecturer Permissions
-      const lecturerRoleId = findRoleId(constants.ROLES.LECTURER);
-      const lecturerPermissions = [
-        constants.PERMISSIONS.COURSE_CREATE,
-        constants.PERMISSIONS.COURSE_EDIT,
-        constants.PERMISSIONS.COURSE_READ,
-        constants.PERMISSIONS.ASSIGNMENT_CREATE,
-        constants.PERMISSIONS.ASSIGNMENT_READ,
-        constants.PERMISSIONS.ASSIGNMENT_UPDATE,
-        constants.PERMISSIONS.ASSIGNMENT_DELETE,
-        constants.PERMISSIONS.ANNOUNCEMENT_CREATE,
-        constants.PERMISSIONS.ANNOUNCEMENT_READ,
-        constants.PERMISSIONS.ANNOUNCEMENT_UPDATE,
-        constants.PERMISSIONS.ANNOUNCEMENT_DELETE,
-        constants.PERMISSIONS.CHAT_CREATE,
-        constants.PERMISSIONS.CHAT_READ,
-        constants.PERMISSIONS.CHAT_UPDATE,
-        constants.PERMISSIONS.CHAT_DELETE,
-        constants.PERMISSIONS.CHAT_MESSAGE_CREATE,
-        constants.PERMISSIONS.CHAT_MESSAGE_READ,
-        constants.PERMISSIONS.CHAT_MESSAGE_UPDATE,
-        constants.PERMISSIONS.CHAT_MESSAGE_DELETE,
-        constants.PERMISSIONS.DEPARTMENT_CREATE,
-        constants.PERMISSIONS.DEPARTMENT_READ,
-        constants.PERMISSIONS.DEPARTMENT_UPDATE,
-        constants.PERMISSIONS.DEPARTMENT_DELETE,
-        constants.PERMISSIONS.LEVEL_CREATE,
-        constants.PERMISSIONS.LEVEL_READ,
-        constants.PERMISSIONS.LEVEL_UPDATE,
-        constants.PERMISSIONS.LEVEL_DELETE,
-      ];
-      lecturerPermissions.forEach((permission) => {
-        rolePermissionsToInsert.push({
-          id: uuidv4(),
-          role_id: lecturerRoleId,
-          permission_id: findPermissionId(permission),
-          created_at: new Date(),
-          updated_at: new Date(),
-        });
-      });
-
-      // Student Permissions
-      const studentRoleId = findRoleId(constants.ROLES.STUDENT);
-      const studentPermissions = [
-        constants.PERMISSIONS.COURSE_READ,
-        constants.PERMISSIONS.ASSIGNMENT_READ,
-        constants.PERMISSIONS.ANNOUNCEMENT_READ,
-        constants.PERMISSIONS.CHAT_READ,
-        constants.PERMISSIONS.CHAT_MESSAGE_CREATE,
-        constants.PERMISSIONS.CHAT_MESSAGE_READ,
-      ];
-      studentPermissions.forEach((permission) => {
-        rolePermissionsToInsert.push({
-          id: uuidv4(),
-          role_id: studentRoleId,
-          permission_id: findPermissionId(permission),
-          created_at: new Date(),
-          updated_at: new Date(),
-        });
-      });
-
-      await queryInterface.bulkInsert(
-        'RolePermissions',
-        rolePermissionsToInsert,
-        { transaction }
-      );
-
+      await queryInterface.bulkInsert('role_permissions', rolePermissionsToInsert, { transaction });
       await transaction.commit();
+      console.log('Role permissions seeded successfully.');
     } catch (error) {
       await transaction.rollback();
-      console.error('Error seeding role permissions:', error.message);
-      throw error;
+      console.error('Error seeding role permissions:', error);
     }
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.bulkDelete('RolePermissions', null, {});
+    try {
+      await queryInterface.bulkDelete('role_permissions', null, {});
+      console.log('Role permissions table cleared.');
+    } catch (error) {
+      console.error('Error clearing role permissions table:', error);
+    }
   },
 };

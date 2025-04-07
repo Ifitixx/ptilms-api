@@ -25,6 +25,7 @@ import PermissionService from './services/PermissionService.js';
 import RolePermissionService from './services/RolePermissionService.js';
 import CourseMaterialService from './services/CourseMaterialService.js';
 import EmailService from './services/emailService.js';
+import RoleService from './services/RoleService.js';
 
 import AuthController from './controllers/authController.js';
 import UserController from './controllers/userController.js';
@@ -39,6 +40,7 @@ import PermissionController from './controllers/PermissionController.js';
 import RoleController from './controllers/RoleController.js';
 import RolePermissionController from './controllers/RolePermissionController.js';
 import CourseMaterialController from './controllers/CourseMaterialController.js';
+import { addToBlacklist, isBlacklisted } from './utils/tokenBlacklist.js'; // Import token blacklist functions
 
 // This function will be called in server.js to initialize the container
 export default function initializeContainer({ sequelize, models }) { // Destructure sequelize and models
@@ -59,9 +61,19 @@ export default function initializeContainer({ sequelize, models }) { // Destruct
   const courseMaterialRepository = new CourseMaterialRepository(CourseMaterial, Course); // Pass CourseMaterial and Course
 
   // Services
+  const roleService = new RoleService({ roleRepository }); // Add this line
   const emailService = new EmailService();
-  const authService = new AuthService({ userRepository, roleRepository, emailService });
-  const userService = new UserService({ userRepository });
+  const authService = new AuthService({ 
+    userRepository, 
+    roleRepository, 
+    emailService,
+    addToBlacklist, // Inject addToBlacklist
+    isBlacklisted, // Inject isBlacklisted (for refreshToken)
+  });
+  const userService = new UserService({ 
+    userRepository,
+    addToBlacklist, // Inject addToBlacklist
+  });
   const courseService = new CourseService({ courseRepository });
   const assignmentService = new AssignmentService({ assignmentRepository });
   const announcementService = new AnnouncementService({ announcementRepository });
@@ -84,7 +96,7 @@ export default function initializeContainer({ sequelize, models }) { // Destruct
   const departmentController = new DepartmentController({ departmentService });
   const levelController = new LevelController({ levelService });
   const permissionController = new PermissionController({ permissionService });
-  const roleController = new RoleController({ roleRepository });
+  const roleController = new RoleController({ roleService });
   const rolePermissionController = new RolePermissionController({ rolePermissionService });
   const courseMaterialController = new CourseMaterialController({ courseMaterialService });
 
@@ -126,5 +138,6 @@ export default function initializeContainer({ sequelize, models }) { // Destruct
     roleController,
     rolePermissionController,
     courseMaterialController,
+    roleService,
   };
 }

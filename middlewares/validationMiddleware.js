@@ -5,6 +5,14 @@ import { error } from '../utils/logger.js';
 
 const validate = (validations) => {
   return async (req, res, next) => {
+    console.log('validate - Request:', {
+      method: req.method,
+      url: req.url,
+      path: req.path,
+      params: req.params,
+      query: req.query,
+      validations: validations.map(v => v.builder.stack.flat().map(rule => rule.msg)),
+    });
     for (let validation of validations) {
       const result = await validation.run(req);
       if (result.errors.length) break;
