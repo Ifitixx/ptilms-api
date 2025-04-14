@@ -41,9 +41,10 @@ import RoleController from './controllers/RoleController.js';
 import RolePermissionController from './controllers/RolePermissionController.js';
 import CourseMaterialController from './controllers/CourseMaterialController.js';
 import { addToBlacklist, isBlacklisted } from './utils/tokenBlacklist.js'; // Import token blacklist functions
+import { sequelize } from './models/index.js'; // Import sequelize
 
 // This function will be called in server.js to initialize the container
-export default function initializeContainer({ sequelize, models }) { // Destructure sequelize and models
+export default function initializeContainer({ models }) { // Destructure models only
   const { Role, User, Course, Assignment, Announcement, Chat, ChatMessage, Department, Level, Permission, RolePermission, CourseMaterial } = models; // Use models
 
   // Repositories - Pass models as needed
@@ -57,7 +58,7 @@ export default function initializeContainer({ sequelize, models }) { // Destruct
   const departmentRepository = new DepartmentRepository(Department);
   const levelRepository = new LevelRepository(Level);
   const permissionRepository = new PermissionRepository(Permission);
-  const rolePermissionRepository = new RolePermissionRepository({ RolePermission, Role, Permission }); // Pass as object
+  const rolePermissionRepository = new RolePermissionRepository({ RolePermission, Role, Permission, sequelize }); // Pass as object, including sequelize
   const courseMaterialRepository = new CourseMaterialRepository(CourseMaterial, Course); // Pass CourseMaterial and Course
 
   // Services

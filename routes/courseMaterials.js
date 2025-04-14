@@ -4,7 +4,7 @@ import authMiddleware from '../middlewares/authMiddleware.js';
 const { authenticateToken, authorizeRole, ROLES } = authMiddleware;
 const router = Router();
 
-export default ({ courseMaterialController }) => {
+export default (courseMaterialController) => {
   // Both admins and lecturers can create course materials
   router.post('/', authenticateToken, authorizeRole([ROLES.ADMIN, ROLES.LECTURER]), (req, res, next) => courseMaterialController.createCourseMaterial(req, res, next));
 

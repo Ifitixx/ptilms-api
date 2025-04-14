@@ -7,6 +7,10 @@ class CourseRepository {
     this.userModel = User;
   }
 
+  async findByTitle(title) {
+    return await this.courseModel.findOne({ where: { title } });
+  }
+
   async getAllCourses() {
     return await this.courseModel.findAll({
       include: [

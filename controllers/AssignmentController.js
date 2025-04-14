@@ -22,12 +22,12 @@ class AssignmentController {
 
     async getAssignmentById(req, res, next) {
         try {
-            const { assignmentId } = req.params;
+            const { id } = req.params;
             // Validate assignmentId format
-            if (!validator.isUUID(assignmentId)) {
+            if (!validator.isUUID(id)) {
                 throw new ValidationError([{ field: 'assignmentId', message: 'Invalid assignmentId format' }]);
             }
-            const assignment = await this.assignmentService.getAssignmentById(assignmentId);
+            const assignment = await this.assignmentService.getAssignmentById(id);
             if (!assignment) {
                 throw new AssignmentNotFoundError();
             }
@@ -78,12 +78,12 @@ class AssignmentController {
 
     async updateAssignment(req, res, next) {
         try {
-            const { assignmentId } = req.params;
+            const { id } = req.params;
             // Validate assignmentId format
-            if (!validator.isUUID(assignmentId)) {
+            if (!validator.isUUID(id)) {
                 throw new ValidationError([{ field: 'assignmentId', message: 'Invalid assignmentId format' }]);
             }
-            const assignment = await this.assignmentService.updateAssignment(assignmentId, req.body);
+            const assignment = await this.assignmentService.updateAssignment(id, req.body);
             if (!assignment) {
                 throw new AssignmentNotFoundError();
             }
@@ -95,16 +95,16 @@ class AssignmentController {
 
     async deleteAssignment(req, res, next) {
         try {
-            const { assignmentId } = req.params;
+            const { id } = req.params;
             // Validate assignmentId format
-            if (!validator.isUUID(assignmentId)) {
+            if (!validator.isUUID(id)) {
                 throw new ValidationError([{ field: 'assignmentId', message: 'Invalid assignmentId format' }]);
             }
-            const assignment = await this.assignmentService.getAssignmentById(assignmentId);
+            const assignment = await this.assignmentService.getAssignmentById(id);
             if (!assignment) {
                 throw new AssignmentNotFoundError();
             }
-            await this.assignmentService.deleteAssignment(assignmentId);
+            await this.assignmentService.deleteAssignment(id);
             res.status(204).send();
         } catch (error) {
             next(error);

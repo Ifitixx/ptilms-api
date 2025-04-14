@@ -8,16 +8,26 @@ export default {
     try {
       await queryInterface.bulkDelete('assignments', null, { transaction }); // Clear existing data
 
-      // Fetch courses
-      const courses = await queryInterface.sequelize.query(`SELECT id, code FROM Courses;`, {
-        type: queryInterface.sequelize.QueryTypes.SELECT,
-        transaction,
-      });
+      // Fetch courses, including departmentId and levelId
+      const courses = await queryInterface.sequelize.query(
+        `SELECT id, code, department_id, level_id FROM Courses;`,
+        {
+          type: queryInterface.sequelize.QueryTypes.SELECT,
+          transaction,
+        }
+      );
+
+      if (!courses || courses.length === 0) {
+        throw new Error('No courses found. Ensure courses are seeded and the Courses table has department_id and level_id.');
+      }
 
       const assignmentsToInsert = ASSIGNMENTS.map((assignment) => {
         const course = courses.find((c) => c.code === assignment.courseCode);
         if (!course) {
           throw new Error(`Course with code "${assignment.courseCode}" not found. Ensure courses are seeded first.`);
+        }
+        if (!course.department_id || !course.level_id) {
+          throw new Error(`Course with code "${assignment.courseCode}" is missing department_id or level_id.`);
         }
         const dueDate = new Date();
         dueDate.setDate(dueDate.getDate() + assignment.dueInDays);
@@ -28,6 +38,8 @@ export default {
           description: assignment.description,
           due_date: dueDate,
           course_id: course.id,
+          department_id: course.department_id,
+          level_id: course.level_id,
           created_at: new Date(),
           updated_at: new Date(),
         };

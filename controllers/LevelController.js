@@ -22,12 +22,12 @@ import {
   
     async getLevelById(req, res, next) {
       try {
-        const { levelId } = req.params;
+        const { id } = req.params;
         // Validate levelId format
-        if (!validator.isUUID(levelId)) {
+        if (!validator.isUUID(id)) {
           throw new ValidationError([{ field: 'levelId', message: 'Invalid levelId format' }]);
         }
-        const level = await this.levelService.getLevelById(levelId);
+        const level = await this.levelService.getLevelById(id);
         if (!level) {
           throw new LevelNotFoundError();
         }
@@ -52,12 +52,12 @@ import {
   
     async updateLevel(req, res, next) {
       try {
-        const { levelId } = req.params;
+        const { id } = req.params;
         // Validate levelId format
-        if (!validator.isUUID(levelId)) {
+        if (!validator.isUUID(id)) {
           throw new ValidationError([{ field: 'levelId', message: 'Invalid levelId format' }]);
         }
-        const level = await this.levelService.updateLevel(levelId, req.body);
+        const level = await this.levelService.updateLevel(id, req.body);
         if (!level) {
           throw new LevelNotFoundError();
         }
@@ -69,16 +69,16 @@ import {
   
     async deleteLevel(req, res, next) {
       try {
-        const { levelId } = req.params;
+        const { id } = req.params;
         // Validate levelId format
-        if (!validator.isUUID(levelId)) {
+        if (!validator.isUUID(id)) {
           throw new ValidationError([{ field: 'levelId', message: 'Invalid levelId format' }]);
         }
-        const level = await this.levelService.getLevelById(levelId);
+        const level = await this.levelService.getLevelById(id);
         if (!level) {
           throw new LevelNotFoundError();
         }
-        await this.levelService.deleteLevel(levelId);
+        await this.levelService.deleteLevel(id);
         res.status(204).send();
       } catch (error) {
         next(error);

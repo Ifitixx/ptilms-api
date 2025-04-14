@@ -4,7 +4,7 @@ import authMiddleware from '../middlewares/authMiddleware.js';
 const { authenticateToken, authorizeRole, ROLES } = authMiddleware;
 const router = Router();
 
-export default ({ departmentController }) => {
+export default (departmentController) => {
   // Both admins and lecturers can create departments
   router.post('/', authenticateToken, authorizeRole([ROLES.ADMIN, ROLES.LECTURER]), (req, res, next) => departmentController.createDepartment(req, res, next));
 

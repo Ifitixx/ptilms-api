@@ -22,12 +22,12 @@ import {
   
     async getRoleById(req, res, next) {
       try {
-        const { roleId } = req.params;
+        const { id } = req.params;
         // Validate roleId format
-        if (!validator.isUUID(roleId)) {
+        if (!validator.isUUID(id)) {
           throw new ValidationError([{ field: 'roleId', message: 'Invalid roleId format' }]);
         }
-        const role = await this.roleService.getRoleById(roleId);
+        const role = await this.roleService.getRoleById(id);
         if (!role) {
           throw new RoleNotFoundError();
         }
@@ -52,12 +52,12 @@ import {
   
     async updateRole(req, res, next) {
       try {
-        const { roleId } = req.params;
+        const { id } = req.params;
         // Validate roleId format
-        if (!validator.isUUID(roleId)) {
+        if (!validator.isUUID(id)) {
           throw new ValidationError([{ field: 'roleId', message: 'Invalid roleId format' }]);
         }
-        const role = await this.roleService.updateRole(roleId, req.body);
+        const role = await this.roleService.updateRole(id, req.body);
         if (!role) {
           throw new RoleNotFoundError();
         }
@@ -69,16 +69,16 @@ import {
   
     async deleteRole(req, res, next) {
       try {
-        const { roleId } = req.params;
+        const { id } = req.params;
         // Validate roleId format
-        if (!validator.isUUID(roleId)) {
+        if (!validator.isUUID(id)) {
           throw new ValidationError([{ field: 'roleId', message: 'Invalid roleId format' }]);
         }
-        const role = await this.roleService.getRoleById(roleId);
+        const role = await this.roleService.getRoleById(id);
         if (!role) {
           throw new RoleNotFoundError();
         }
-        await this.roleService.deleteRole(roleId);
+        await this.roleService.deleteRole(id);
         res.status(204).send();
       } catch (error) {
         next(error);

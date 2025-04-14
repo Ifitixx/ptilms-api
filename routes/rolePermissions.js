@@ -4,7 +4,7 @@ import authMiddleware from '../middlewares/authMiddleware.js';
 const { authenticateToken, authorizeRole, ROLES } = authMiddleware;
 const router = Router();
 
-export default ({ rolePermissionController }) => {
+export default (rolePermissionController) => {
   // Only admins can create role permissions
   router.post('/', authenticateToken, authorizeRole([ROLES.ADMIN]), (req, res, next) => rolePermissionController.createRolePermission(req, res, next));
 

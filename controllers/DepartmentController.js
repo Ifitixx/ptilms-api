@@ -22,12 +22,12 @@ import {
   
     async getDepartmentById(req, res, next) {
       try {
-        const { departmentId } = req.params;
+        const { id } = req.params;
         // Validate departmentId format
-        if (!validator.isUUID(departmentId)) {
+        if (!validator.isUUID(id)) {
           throw new ValidationError([{ field: 'departmentId', message: 'Invalid departmentId format' }]);
         }
-        const department = await this.departmentService.getDepartmentById(departmentId);
+        const department = await this.departmentService.getDepartmentById(id);
         if (!department) {
           throw new DepartmentNotFoundError();
         }
@@ -52,12 +52,12 @@ import {
   
     async updateDepartment(req, res, next) {
       try {
-        const { departmentId } = req.params;
+        const { id } = req.params;
         // Validate departmentId format
-        if (!validator.isUUID(departmentId)) {
+        if (!validator.isUUID(id)) {
           throw new ValidationError([{ field: 'departmentId', message: 'Invalid departmentId format' }]);
         }
-        const department = await this.departmentService.updateDepartment(departmentId, req.body);
+        const department = await this.departmentService.updateDepartment(id, req.body);
         if (!department) {
           throw new DepartmentNotFoundError();
         }
@@ -69,16 +69,16 @@ import {
   
     async deleteDepartment(req, res, next) {
       try {
-        const { departmentId } = req.params;
+        const { id } = req.params;
         // Validate departmentId format
-        if (!validator.isUUID(departmentId)) {
+        if (!validator.isUUID(id)) {
           throw new ValidationError([{ field: 'departmentId', message: 'Invalid departmentId format' }]);
         }
-        const department = await this.departmentService.getDepartmentById(departmentId);
+        const department = await this.departmentService.getDepartmentById(id);
         if (!department) {
           throw new DepartmentNotFoundError();
         }
-        await this.departmentService.deleteDepartment(departmentId);
+        await this.departmentService.deleteDepartment(id);
         res.status(204).send();
       } catch (error) {
         next(error);

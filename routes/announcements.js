@@ -4,7 +4,7 @@ import authMiddleware from '../middlewares/authMiddleware.js';
 const { authenticateToken, authorizeRole, ROLES } = authMiddleware;
 const router = Router();
 
-export default ({ announcementController }) => {
+export default (announcementController) => {
   // Both admins and lecturers can create announcements
   router.post('/', authenticateToken, authorizeRole([ROLES.ADMIN, ROLES.LECTURER]), (req, res, next) => announcementController.createAnnouncement(req, res, next));
 

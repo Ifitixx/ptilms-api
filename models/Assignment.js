@@ -10,6 +10,18 @@ export default (sequelize) => {
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
+      Assignment.belongsTo(models.Department, {  // New association
+        foreignKey: 'departmentId',
+        as: 'department',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+      });
+      Assignment.belongsTo(models.Level, {  // New association
+        foreignKey: 'levelId',
+        as: 'level',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+      });
     }
   }
 
@@ -37,6 +49,16 @@ export default (sequelize) => {
         type: DataTypes.UUID,
         allowNull: false,
         field: 'course_id', // Ensure snake_case
+      },
+      departmentId: {  // New field
+        type: DataTypes.UUID,
+        allowNull: false,
+        field: 'department_id',
+      },
+      levelId: {  // New field
+        type: DataTypes.UUID,
+        allowNull: false,
+        field: 'level_id',
       },
     },
     {

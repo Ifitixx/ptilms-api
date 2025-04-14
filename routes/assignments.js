@@ -4,7 +4,7 @@ import authMiddleware from '../middlewares/authMiddleware.js';
 const { authenticateToken, authorizeRole, ROLES } = authMiddleware;
 const router = Router();
 
-export default ({ assignmentController }) => {
+export default (assignmentController) => {
   // Both admins and lecturers can create assignments
   router.post('/', authenticateToken, authorizeRole([ROLES.ADMIN, ROLES.LECTURER]), (req, res, next) => assignmentController.createAssignment(req, res, next));
 

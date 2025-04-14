@@ -51,7 +51,7 @@ class CourseController {
             next(error);
         }
     }
-    
+
     async getCoursesByLevelId(req, res, next) {
         try {
             const { levelId } = req.params;
@@ -65,7 +65,7 @@ class CourseController {
             next(error);
         }
     }
-    
+
     async getCoursesByLecturerId(req, res, next) {
         try {
             const { lecturerId } = req.params;
@@ -82,7 +82,7 @@ class CourseController {
 
     async createCourse(req, res, next) {
         try {
-            const { title, code, format, description, departmentId, levelId } = req.body;
+            const { title, code, format, description, departmentId, levelId, isDepartmental = false, units = 0 } = req.body;
             if (!title || !code || !format || !description || !departmentId || !levelId) {
                 throw new BadRequestError('Title, code, format, description, departmentId, and levelId are required');
             }
@@ -94,10 +94,31 @@ class CourseController {
             if (!validator.isUUID(levelId)) {
                 throw new ValidationError([{ field: 'levelId', message: 'Invalid levelId format' }]);
             }
-            const course = await this.courseService.createCourse(req.body);
+            // Ensure units is a positive integer
+            if (units !== undefined && (!Number.isInteger(units) || units < 1)) {
+                throw new ValidationError([{ field: 'units', message: 'Units must be a positive integer' }]);
+            }
+            const course = await this.courseService.createCourse({
+                title,
+                code,
+                format,
+                description,
+                departmentId,
+                levelId,
+                isDepartmental,
+                units,
+            });
             res.status(201).json(course);
         } catch (error) {
-            next(error);
+            if (error.name === 'SequelizeUniqueConstraintError') {  // Check for unique constraint error
+                // Extract the field that caused the error (e.g., 'title')
+                const field = error.errors[0].path;
+                return res.status(409).json({  // 409 Conflict status code
+                    message: `A course with this ${field} already exists.`,
+                    errors: error.errors.map(err => ({ field: err.path, message: err.message }))
+                });
+            }
+            next(error);  // Pass other errors to the error handler
         }
     }
 
@@ -107,6 +128,10 @@ class CourseController {
             // Validate courseId format
             if (!validator.isUUID(courseId)) {
                 throw new ValidationError([{ field: 'courseId', message: 'Invalid courseId format' }]);
+            }
+            // Ensure units is a positive integer if provided
+            if (req.body.units !== undefined && (!Number.isInteger(req.body.units) || req.body.units < 1)) {
+                throw new ValidationError([{ field: 'units', message: 'Units must be a positive integer' }]);
             }
             const course = await this.courseService.updateCourse(courseId, req.body);
             if (!course) {

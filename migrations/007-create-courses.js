@@ -1,4 +1,5 @@
 // ptilms-api/migrations/007-create-courses.js
+// ptilms-api/migrations/007-create-courses.js
 import { DataTypes } from 'sequelize';
 
 export default {
@@ -13,6 +14,7 @@ export default {
       title: {
         type: DataTypes.STRING,
         allowNull: false,
+        unique: true, // ADDED UNIQUE CONSTRAINT HERE
       },
       code: {
         type: DataTypes.STRING,

@@ -16,9 +16,9 @@ class AssignmentService {
     }
   }
 
-  async getAssignmentById(assignmentId) {
+  async getAssignmentById(id) {
     try {
-      const assignment = await this.assignmentRepository.getAssignmentById(assignmentId);
+      const assignment = await this.assignmentRepository.getAssignmentById(id);
       if (!assignment) {
         throw new NotFoundError('Assignment not found');
       }
@@ -38,9 +38,9 @@ class AssignmentService {
     }
   }
 
-  async updateAssignment(assignmentId, data) {
+  async updateAssignment(id, data) {
     try {
-      const assignment = await this.assignmentRepository.updateAssignment(assignmentId, data);
+      const assignment = await this.assignmentRepository.updateAssignment(id, data);
       if (!assignment) {
         throw new NotFoundError('Assignment not found');
       }
@@ -51,9 +51,9 @@ class AssignmentService {
     }
   }
 
-  async deleteAssignment(assignmentId) {
+  async deleteAssignment(id) {
     try {
-      const success = await this.assignmentRepository.deleteAssignment(assignmentId);
+      const success = await this.assignmentRepository.deleteAssignment(id);
       if (!success) {
         throw new NotFoundError('Assignment not found');
       }

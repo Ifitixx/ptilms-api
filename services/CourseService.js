@@ -1,5 +1,5 @@
 // ptilms-api/services/CourseService.js
-import { NotFoundError } from '../utils/errors.js';
+import { NotFoundError, ConflictError } from '../utils/errors.js';
 import { error as _error } from '../utils/logger.js';
 
 class CourseService {
@@ -31,8 +31,14 @@ class CourseService {
 
   async createCourse(data) {
     try {
+      // 1) Pre-flight: does this title already exist?
+      const existing = await this.courseRepository.findByTitle(data.title);
+      if (existing) {
+        throw new ConflictError(`A course with title "${data.title}" already exists.`);
+      }
+      // 2) Safe to create
       return await this.courseRepository.createCourse(data);
-    } catch (error) {
+    } catch (error) { // Changed err to error for consistency
       _error(`Error in createCourse: ${error.message}`);
       throw error;
     }

@@ -8,7 +8,7 @@ const { validate } = validationMiddleware;
 
 const router = Router();
 
-export default ({ courseController }) => {
+export default (courseController) => {
   /**
    * @swagger
    * /courses:
@@ -24,7 +24,11 @@ export default ({ courseController }) => {
    *           schema:
    *             type: object
    *             properties:
-   *               name:
+   *               title:
+   *                 type: string
+   *               code:
+   *                 type: string
+   *               format:
    *                 type: string
    *               description:
    *                 type: string
@@ -32,6 +36,10 @@ export default ({ courseController }) => {
    *                 type: string
    *               levelId:
    *                 type: string
+   *               isDepartmental:
+   *                 type: boolean
+   *               units:
+   *                 type: integer
    *     responses:
    *       201:
    *         description: Course created successfully
@@ -45,10 +53,14 @@ export default ({ courseController }) => {
    *         description: Internal server error
    */
   router.post('/', authenticateToken, authorizeRole([ROLES.ADMIN, ROLES.LECTURER]), validate([
-    body('name').trim().notEmpty().withMessage('Name is required'),
+    body('title').trim().notEmpty().withMessage('Title is required'),
+    body('code').trim().notEmpty().withMessage('Code is required'),
+    body('format').trim().notEmpty().withMessage('Format is required'),
     body('description').trim().notEmpty().withMessage('Description is required'),
     body('departmentId').trim().notEmpty().withMessage('DepartmentId is required').isUUID().withMessage('Invalid departmentId format'),
     body('levelId').trim().notEmpty().withMessage('LevelId is required').isUUID().withMessage('Invalid levelId format'),
+    body('isDepartmental').optional().isBoolean().withMessage('isDepartmental must be a boolean'),
+    body('units').isInt({ min: 1 }).withMessage('Units must be a positive integer'),
   ]), (req, res, next) => courseController.createCourse(req, res, next));
 
   /**
@@ -126,7 +138,11 @@ export default ({ courseController }) => {
    *           schema:
    *             type: object
    *             properties:
-   *               name:
+   *               title:
+   *                 type: string
+   *               code:
+   *                 type: string
+   *               format:
    *                 type: string
    *               description:
    *                 type: string
@@ -134,6 +150,10 @@ export default ({ courseController }) => {
    *                 type: string
    *               levelId:
    *                 type: string
+   *               isDepartmental:
+   *                 type: boolean
+   *               units:
+   *                 type: integer
    *     responses:
    *       200:
    *         description: Course updated successfully
@@ -150,10 +170,14 @@ export default ({ courseController }) => {
    */
   router.put('/:courseId', authenticateToken, authorizeRole([ROLES.ADMIN, ROLES.LECTURER]), validate([
     param('courseId').isUUID().withMessage('Invalid course ID format'),
-    body('name').optional().trim().notEmpty().withMessage('Name is required'),
+    body('title').optional().trim().notEmpty().withMessage('Title is required'),
+    body('code').optional().trim().notEmpty().withMessage('Code is required'),
+    body('format').optional().trim().notEmpty().withMessage('Format is required'),
     body('description').optional().trim().notEmpty().withMessage('Description is required'),
     body('departmentId').optional().trim().notEmpty().withMessage('DepartmentId is required').isUUID().withMessage('Invalid departmentId format'),
     body('levelId').optional().trim().notEmpty().withMessage('LevelId is required').isUUID().withMessage('Invalid levelId format'),
+    body('isDepartmental').optional().isBoolean().withMessage('isDepartmental must be a boolean'),
+    body('units').optional().isInt({ min: 1 }).withMessage('Units must be a positive integer'),
   ]), (req, res, next) => courseController.updateCourse(req, res, next));
 
   /**
@@ -186,8 +210,7 @@ export default ({ courseController }) => {
    *         description: Internal server error
    */
   router.delete('/:courseId', authenticateToken, authorizeRole([ROLES.ADMIN]), validate([
-    param('courseId').isUUID().withMessage('Invalid course ID format'),
-  ]), (req, res, next) => courseController.deleteCourse(req, res, next));
+    param('courseId').isUUID().withMessage('Invalid course ID format'),]), (req, res, next) => courseController.deleteCourse(req, res, next));
 
   return router;
-};
+}

@@ -4,7 +4,7 @@ import authMiddleware from '../middlewares/authMiddleware.js';
 const { authenticateToken, authorizeRole, ROLES } = authMiddleware;
 const router = Router();
 
-export default ({ chatMessageController }) => {
+export default (chatMessageController) => {
   // Both admins and lecturers can create chat messages
   router.post('/', authenticateToken, authorizeRole([ROLES.ADMIN, ROLES.LECTURER]), (req, res, next) => chatMessageController.createChatMessage(req, res, next));
 
