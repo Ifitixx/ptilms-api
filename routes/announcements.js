@@ -21,7 +21,11 @@ export default (announcementController) => {
   router.put('/:id', authenticateToken, authorizeRole([ROLES.ADMIN, ROLES.LECTURER]), (req, res, next) => announcementController.updateAnnouncement(req, res, next));
 
   // New route: Get announcements by course ID
-  router.get('/course/:courseId', authenticateToken, authorizeRole([ROLES.ADMIN, ROLES.LECTURER, ROLES.STUDENT]), (req, res, next) => announcementController.getAnnouncementsByCourseId(req, res, next));
+  router.get('/course/:courseId',
+    authenticateToken,
+    authorizeRole([ROLES.ADMIN, ROLES.LECTURER, ROLES.STUDENT]),
+    (req, res, next) => announcementController.getAnnouncementsByCourseId(req, res, next)
+  );
 
   // New route: Get announcements by lecturer ID
   router.get('/lecturer/:lecturerId', authenticateToken, authorizeRole([ROLES.ADMIN, ROLES.LECTURER]), (req, res, next) => announcementController.getAnnouncementsByLecturerId(req, res, next));

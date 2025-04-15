@@ -64,4 +64,4 @@ module.exports = {
     pass: process.env.EMAIL_PASS,
     from: process.env.EMAIL_FROM,
   },
-};
+};   

@@ -45,8 +45,8 @@ import uploadRoutes from './routes/uploads.js'; // Import the upload routes
 const app = express();
 
 app.use(cors({
-  origin: config.cors.origins, // Use config.cors directly
-  methods: config.cors.methods, // Use config.cors directly
+  origin: config.cors.origins,
+  methods: config.cors.methods,
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   exposedHeaders: ['Authorization', 'X-Refresh-Token'],
   credentials: true
@@ -97,7 +97,7 @@ app.use(json());
     app.use('/api/v1/roles', rolesRoutes(container.roleController));
     app.use('/api/v1/rolePermissions', rolePermissionsRoutes(container.rolePermissionController));
     app.use('/api/v1/courseMaterials', courseMaterialRoutes(container.courseMaterialController));
-    app.use('/api/v1', uploadRoutes); 
+    app.use('/api/v1', uploadRoutes);
     app.use('/api/v1/config', configRoutes);
 
     // Swagger setup

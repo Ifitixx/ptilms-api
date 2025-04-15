@@ -3,8 +3,8 @@ import jwt from 'jsonwebtoken';
 const { verify } = jwt;
 import { UnauthorizedError, ForbiddenError } from '../utils/errors.js';
 import { isBlacklisted } from '../utils/tokenBlacklist.js';
-import config from '../config/config.cjs'; // Correct: Default import
-const { jwt: _jwt } = config; // Correct: Destructure after default import
+import config from '../config/config.cjs';
+const { jwt: _jwt } = config;
 import { ROLES } from '../config/constants.mjs';
 
 const authenticateToken = async (req, res, next) => {
@@ -18,7 +18,7 @@ const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  console.log(`Received token: ${token}`); // Add this line
+  console.log(`Received token: ${token}`);
 
   if (!token) {
     return next(new UnauthorizedError('No token provided'));
@@ -28,28 +28,30 @@ const authenticateToken = async (req, res, next) => {
     return next(new UnauthorizedError('Token has been revoked'));
   }
 
-  verify(token, _jwt.secret, (err, user) => {
-    console.log(`JWT verification result: err=${err}, user=${JSON.stringify(user)}`); // Add this line
-    if (err) {
-      return next(new UnauthorizedError('Invalid token'));
-    }
-    req.user = user;
+  try {
+    const decoded = await verify(token, _jwt.secret);
+    req.user = decoded;
     next();
-  });
+  } catch (err) {
+    next(new UnauthorizedError('Invalid token'));
+  }
+
   console.log('authenticateToken - Request (after):', {
     method: req.method,
     url: req.url,
     path: req.path,
     params: req.params,
     query: req.query,
-    user: req.user, // If req.user is set
+    user: req.user,
   });
 };
 
 const authorizeRole = (roles) => {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
-      return next(new ForbiddenError('Insufficient permissions'));
+      const errorMessage = "You do not have permission to perform this action.";
+      console.log(`Authorization failed: User role '${req.user?.role}' does not match required roles [${roles.join(', ')}] for ${req.method} ${req.url}`);
+      return next(new ForbiddenError(errorMessage));
     }
     next();
   };
