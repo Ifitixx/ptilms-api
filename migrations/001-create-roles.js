@@ -1,4 +1,5 @@
 // ptilms-api/migrations/001-create-roles.js
+// ptilms-api/migrations/001-create-roles.js
 import { DataTypes } from 'sequelize';
 
 export default {
@@ -17,7 +18,7 @@ export default {
       },
       description: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       created_at: {
         allowNull: false,
@@ -27,7 +28,7 @@ export default {
         allowNull: false,
         type: DataTypes.DATE,
       },
-      deleted_at: {
+      deleted_at: { // Added for soft deletes
         type: DataTypes.DATE,
         allowNull: true,
       },
