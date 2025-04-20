@@ -5,9 +5,9 @@ const options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'PTiLMS API',
+      title: 'PTiLMS API Documentation',
       version: '1.0.0',
-      description: 'API documentation for the PTiLMS application',
+      description: 'API documentation for the PTiLMS (Programming Teaching and Learning Management System)',
     },
     components: {
       securitySchemes: {
@@ -181,9 +181,83 @@ const options = {
             },
           },
         },
+        Error: {
+          type: 'object',
+          properties: {
+            message: {
+              type: 'string',
+              description: 'Error message'
+            },
+            code: {
+              type: 'string',
+              description: 'Error code'
+            }
+          }
+        },
+        PerformanceMetrics: {
+          type: 'object',
+          properties: {
+            requestsPerMinute: {
+              type: 'number',
+              description: 'Number of requests processed per minute'
+            },
+            averageResponseTime: {
+              type: 'number',
+              description: 'Average response time in milliseconds'
+            },
+            errorRate: {
+              type: 'number',
+              description: 'Error rate as a percentage'
+            },
+            activeUsers: {
+              type: 'number',
+              description: 'Number of currently active users'
+            },
+            cpuUsage: {
+              type: 'number',
+              description: 'CPU usage percentage'
+            },
+            memoryUsage: {
+              type: 'number',
+              description: 'Memory usage in MB'
+            }
+          }
+        },
+        EmailJob: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              description: 'Unique identifier for the email job'
+            },
+            status: {
+              type: 'string',
+              enum: ['queued', 'processing', 'completed', 'failed'],
+              description: 'Current status of the email job'
+            },
+            attempts: {
+              type: 'number',
+              description: 'Number of attempts made to send the email'
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'When the email job was created'
+            },
+            processedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'When the email was processed'
+            }
+          }
+        }
       },
     },
     security: [{ bearerAuth: [] }],
+    servers: [{
+      url: '/api/v1',
+      description: 'API v1'
+    }]
   },
   apis: ['./routes/*.js'],
 };

@@ -6,13 +6,25 @@ export default (sequelize) => {
     static associate(models) {
       Announcement.belongsTo(models.User, {
         foreignKey: 'userId',
-        as: 'user',
+        as: 'creator',
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
       Announcement.belongsTo(models.Course, {
         foreignKey: 'courseId',
         as: 'course',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+      });
+      Announcement.belongsTo(models.Department, {
+        foreignKey: 'departmentId',
+        as: 'department',
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+      });
+      Announcement.belongsTo(models.Level, {
+        foreignKey: 'levelId',
+        as: 'level',
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
@@ -37,20 +49,30 @@ export default (sequelize) => {
       userId: {
         type: DataTypes.UUID,
         allowNull: false,
-        field: 'user_id', // Ensure snake_case
+        field: 'user_id',
       },
       courseId: {
         type: DataTypes.UUID,
         allowNull: false,
-        field: 'course_id', // Ensure snake_case
+        field: 'course_id',
       },
+      departmentId: {
+        type: DataTypes.UUID,
+        allowNull: false, // Changed to false since it should be required
+        field: 'department_id',
+      },
+      levelId: {
+        type: DataTypes.UUID,
+        allowNull: false, // Changed to false since it should be required
+        field: 'level_id',
+      }
     },
     {
       sequelize,
       modelName: 'Announcement',
       tableName: 'announcements',
       paranoid: true,
-      underscored: true, // Ensure snake_case for timestamps
+      underscored: true,
     }
   );
 

@@ -29,11 +29,11 @@ export default {
         type: DataTypes.UUID,
         allowNull: true,
         references: {
-          model: 'Roles',
+          model: 'roles', // Changed to lowercase 'roles' for consistency
           key: 'id',
         },
         onUpdate: 'CASCADE',
-        onDelete: 'CASCADE',
+        onDelete: 'SET NULL', // Changed to SET NULL as per common practice for optional foreign keys
       },
       phone_number: {
         type: DataTypes.STRING,
@@ -61,7 +61,7 @@ export default {
       },
       refresh_token_hash: {
         type: DataTypes.STRING,
-        allowNull: false, // Corrected to allowNull: false
+        allowNull: false,
       },
       last_login: {
         type: DataTypes.DATE,
@@ -92,7 +92,6 @@ export default {
         type: DataTypes.DATE,
         allowNull: true,
       },
-      // Add department column
       department: {
         type: DataTypes.STRING,
         allowNull: true,

@@ -7,9 +7,12 @@ export default (sequelize) => {
       Role.hasMany(models.User, {
         foreignKey: 'roleId',
         as: 'users',
+        onDelete: 'RESTRICT',
+        onUpdate: 'CASCADE',
       });
+      
       Role.belongsToMany(models.Permission, {
-        through: models.RolePermission,
+        through: 'role_permissions',
         foreignKey: 'roleId',
         otherKey: 'permissionId',
         as: 'permissions',
@@ -28,14 +31,24 @@ export default (sequelize) => {
         type: DataTypes.STRING,
         allowNull: false,
         unique: true,
+        validate: {
+          notEmpty: true
+        }
       },
+      description: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        validate: {
+          notEmpty: true
+        }
+      }
     },
     {
       sequelize,
       modelName: 'Role',
       tableName: 'roles',
       paranoid: true,
-      underscored: true, // Ensure snake_case for timestamps
+      underscored: true,
     }
   );
 

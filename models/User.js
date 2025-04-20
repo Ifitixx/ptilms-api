@@ -18,7 +18,7 @@ export default (sequelize) => {
       User.belongsTo(models.Role, {
         foreignKey: 'roleId',
         as: 'role',
-        onDelete: 'CASCADE',
+        onDelete: 'SET NULL', // Changed to SET NULL for consistency with migration
         onUpdate: 'CASCADE',
       });
       User.hasMany(models.Announcement, {
@@ -33,7 +33,6 @@ export default (sequelize) => {
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       });
-      // Add association to Course
       User.hasMany(models.Course, {
         foreignKey: 'lecturerId',
         as: 'courses',
@@ -43,7 +42,6 @@ export default (sequelize) => {
     }
 
     async verifyPassword(password) {
-      // Use email to find the user with sensitive data
       const userWithPassword = await this.constructor.scope('withSensitive').findOne({ where: { email: this.email } });
 
       if (!userWithPassword) {
@@ -57,6 +55,7 @@ export default (sequelize) => {
       delete values.password;
       delete values.resetToken;
       delete values.resetTokenExpiry;
+      delete values.refreshTokenHash; // Also exclude refreshTokenHash from default JSON output
       return values;
     }
   }
@@ -104,17 +103,17 @@ export default (sequelize) => {
           model: 'roles',
           key: 'id',
         },
-        field: 'role_id', // Ensure snake_case
+        field: 'role_id',
       },
       phoneNumber: {
         type: DataTypes.STRING,
         allowNull: true,
-        field: 'phone_number', // Ensure snake_case
+        field: 'phone_number',
       },
       dateOfBirth: {
         type: DataTypes.DATE,
         allowNull: true,
-        field: 'date_of_birth', // Ensure snake_case
+        field: 'date_of_birth',
       },
       sex: {
         type: DataTypes.ENUM(...USER_SEX_ENUM),
@@ -123,44 +122,43 @@ export default (sequelize) => {
       profilePictureUrl: {
         type: DataTypes.STRING,
         allowNull: true,
-        field: 'profile_picture_url', // Ensure snake_case
+        field: 'profile_picture_url',
       },
       lastLogin: {
         type: DataTypes.DATE,
         allowNull: true,
-        field: 'last_login', // Ensure snake_case
+        field: 'last_login',
       },
       isVerified: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
         allowNull: false,
-        field: 'is_verified', // Ensure snake_case
+        field: 'is_verified',
       },
       verificationToken: {
         type: DataTypes.STRING,
         allowNull: true,
         unique: true,
-        field: 'verification_token', // Ensure snake_case
+        field: 'verification_token',
       },
       resetToken: {
         type: DataTypes.STRING,
         allowNull: true,
-        field: 'reset_token', // Ensure snake_case
+        field: 'reset_token',
       },
       resetTokenExpiry: {
         type: DataTypes.DATE,
         allowNull: true,
-        field: 'reset_token_expiry', // Ensure snake_case
+        field: 'reset_token_expiry',
       },
       refreshTokenHash: {
         type: DataTypes.STRING,
         allowNull: false,
-        field: 'refresh_token_hash', // Ensure snake_case
+        field: 'refresh_token_hash',
       },
-      // Add department column
       department: {
         type: DataTypes.STRING,
-        allowNull: true, // Assuming department is optional for non-lecturers
+        allowNull: true,
       },
     },
     {
@@ -168,15 +166,15 @@ export default (sequelize) => {
       modelName: 'User',
       tableName: 'users',
       paranoid: true,
-      underscored: true, // Ensure snake_case for timestamps and field names
+      underscored: true,
       defaultScope: {
-        attributes: { exclude: ['password', 'resetToken', 'resetTokenExpiry', 'refreshTokenHash'] }, // Exclude refreshTokenHash
+        attributes: { exclude: ['password', 'resetToken', 'resetTokenExpiry', 'refreshTokenHash'] },
       },
       scopes: {
         withSensitive: {
-          attributes: { include: ['password', 'resetToken', 'resetTokenExpiry', 'refreshTokenHash'] }, // Include refreshTokenHash
+          attributes: { include: ['password', 'resetToken', 'resetTokenExpiry', 'refreshTokenHash'] },
         },
-        withDeleted: {  // Added scope to include soft-deleted records
+        withDeleted: {
           paranoid: false,
         },
       },

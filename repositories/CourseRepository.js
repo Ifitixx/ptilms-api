@@ -1,6 +1,6 @@
 // ptilms-api/repositories/CourseRepository.js
 class CourseRepository {
-  constructor(Course, Department, Level, User) { // Expect models directly
+  constructor({ Course, Department, Level, User }) { // Expect an object
     this.courseModel = Course;
     this.departmentModel = Department;
     this.levelModel = Level;
@@ -14,18 +14,9 @@ class CourseRepository {
   async getAllCourses() {
     return await this.courseModel.findAll({
       include: [
-        {
-          model: this.departmentModel,
-          as: 'department',
-        },
-        {
-          model: this.levelModel,
-          as: 'level',
-        },
-        {
-          model: this.userModel,
-          as: 'lecturer',
-        },
+        { model: this.departmentModel, as: 'department' },
+        { model: this.levelModel, as: 'level' },
+        { model: this.userModel, as: 'lecturer' },
       ],
     });
   }
@@ -33,18 +24,9 @@ class CourseRepository {
   async getCourseById(courseId) {
     return await this.courseModel.findByPk(courseId, {
       include: [
-        {
-          model: this.departmentModel,
-          as: 'department',
-        },
-        {
-          model: this.levelModel,
-          as: 'level',
-        },
-        {
-          model: this.userModel,
-          as: 'lecturer',
-        },
+        { model: this.departmentModel, as: 'department' },
+        { model: this.levelModel, as: 'level' },
+        { model: this.userModel, as: 'lecturer' },
       ],
     });
   }
@@ -65,60 +47,45 @@ class CourseRepository {
     await course.destroy();
     return true;
   }
+
   async getCoursesByDepartmentId(departmentId) {
     return await this.courseModel.findAll({
       where: { departmentId: departmentId },
       include: [
-        {
-          model: this.departmentModel,
-          as: 'department',
-        },
-        {
-          model: this.levelModel,
-          as: 'level',
-        },
-        {
-          model: this.userModel,
-          as: 'lecturer',
-        },
+        { model: this.departmentModel, as: 'department' },
+        { model: this.levelModel, as: 'level' },
+        { model: this.userModel, as: 'lecturer' },
       ],
     });
   }
+
   async getCoursesByLevelId(levelId) {
     return await this.courseModel.findAll({
       where: { levelId: levelId },
       include: [
-        {
-          model: this.departmentModel,
-          as: 'department',
-        },
-        {
-          model: this.levelModel,
-          as: 'level',
-        },
-        {
-          model: this.userModel,
-          as: 'lecturer',
-        },
+        { model: this.departmentModel, as: 'department' },
+        { model: this.levelModel, as: 'level' },
+        { model: this.userModel, as: 'lecturer' },
       ],
     });
   }
-  async getCoursesByLecturerId(lecturerId) {
+
+  async getCoursesByLecturerId(lecturerId, options = {}) { // Added options parameter
     return await this.courseModel.findAll({
       where: { lecturerId: lecturerId },
       include: [
-        {
-          model: this.departmentModel,
-          as: 'department',
-        },
-        {
-          model: this.levelModel,
-          as: 'level',
-        },
-        {
-          model: this.userModel,
-          as: 'lecturer',
-        },
+        { model: this.departmentModel, as: 'department' },
+        { model: this.levelModel, as: 'level' },
+        { model: this.userModel, as: 'lecturer' },
+      ],
+      ...options // Spread options here
+    });
+  }
+
+  async getCourseWithLecturer(courseId) {
+    return await this.courseModel.findByPk(courseId, {
+      include: [
+        { model: this.userModel, as: 'lecturer' },
       ],
     });
   }

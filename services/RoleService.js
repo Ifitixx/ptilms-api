@@ -1,8 +1,7 @@
 // ptilms-api/services/RoleService.js
-// ptilms-api/services/RoleService.js
+import { info, error as _error } from '../utils/logger.js';
 import { NotFoundError } from '../utils/errors.js';
-import { error as _error } from '../utils/logger.js';
-import logger from '../utils/logger.js';
+import { ROLES } from '../config/constants.mjs';
 
 class RoleService {
   constructor({ roleRepository }) {
@@ -31,53 +30,116 @@ class RoleService {
     }
   }
 
-  async createRole(data) {
+  async getRoleByName(name) {
     try {
-      return await this.roleRepository.createRole(data);
+      return await this.roleRepository.getRoleByName(name);
     } catch (error) {
-      _error(`Error in createRole: ${error.message}`);
+      _error(`Error in getRoleByName: ${error.message}`);
       throw error;
     }
   }
 
-  async updateRole(id, data) {
+  async createRole(data) {
+    const transaction = await this.roleRepository.sequelize.transaction();
     try {
-      const role = await this.roleRepository.updateRole(id, data);
-      if (!role) {
-        throw new NotFoundError('Role not found');
-      }
+      info('Starting transaction for createRole');
+      const role = await this.roleRepository.createRole(data, transaction);
+      info('Committing transaction');
+      await transaction.commit();
       return role;
     } catch (error) {
-      _error(`Error in updateRole: ${error.message}`);
-      throw error;
-    }
-  }
-
-  async deleteRole(id) {
-    try {
-      const success = await this.roleRepository.deleteRole(id);
-      if (!success) {
-        throw new NotFoundError('Role not found');
-      }
-    } catch (error) {
-      _error(`Error in deleteRole: ${error.message}`);
+      _error(`Error in createRole: ${error.message}`);
+      info('Rolling back transaction');
+      await transaction.rollback();
       throw error;
     }
   }
 
   async createDefaultRoles() {
     try {
-      const existingRoles = await this.roleRepository.getAllRoles(); // Use the repository
+      info('Starting default roles check/creation');
+      
+      const defaultRoles = [
+        {
+          name: ROLES.ADMIN,
+          description: 'System administrator with full access to all features'
+        },
+        {
+          name: ROLES.LECTURER,
+          description: 'Lecturer with access to course management and teaching features'
+        },
+        {
+          name: ROLES.STUDENT,
+          description: 'Student with access to learning and course participation features'
+        }
+      ];
+
+      // Check if roles already exist
+      const existingRoles = await this.roleRepository.getAllRoles();
       if (existingRoles.length === 0) {
-        const roleNames = ['admin', 'instructor', 'student']; // Or however you get ROLE_NAMES
-        await this.roleRepository.bulkCreate(roleNames.map(name => ({ name }))); // Use the repository
-        logger.info('Default roles created.'); // Use the imported logger
-      } else {
-        logger.info('Default roles already exist.'); // Use the imported logger
+        // Create each role individually in a transaction
+        const createdRoles = [];
+        for (const roleData of defaultRoles) {
+          const role = await this.createRole(roleData);
+          createdRoles.push(role);
+        }
+        info('Default roles created successfully');
+        return createdRoles;
       }
+
+      info('Default roles already exist, skipping creation');
+      return existingRoles;
     } catch (error) {
-      logger.error(`Error creating default roles: ${error.message}`); // Use the imported logger
-      throw error; // Re-throw the error to propagate it
+      _error(`Error in createDefaultRoles: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async updateRole(id, data) {
+    const transaction = await this.roleRepository.sequelize.transaction();
+    try {
+      info('Starting transaction for updateRole');
+      const role = await this.roleRepository.updateRole(id, data, transaction);
+      if (!role) {
+        throw new NotFoundError('Role not found');
+      }
+      info('Committing transaction');
+      await transaction.commit();
+      return role;
+    } catch (error) {
+      _error(`Error in updateRole: ${error.message}`);
+      info('Rolling back transaction');
+      await transaction.rollback();
+      throw error;
+    }
+  }
+
+  async deleteRole(id) {
+    const transaction = await this.roleRepository.sequelize.transaction();
+    try {
+      info('Starting transaction for deleteRole');
+      const success = await this.roleRepository.deleteRole(id, transaction);
+      if (!success) {
+        throw new NotFoundError('Role not found');
+      }
+      info('Committing transaction');
+      await transaction.commit();
+    } catch (error) {
+      _error(`Error in deleteRole: ${error.message}`);
+      info('Rolling back transaction');
+      await transaction.rollback();
+      throw error;
+    }
+  }
+
+  async getRolesByPermissionId(permissionId) {
+    try {
+      const roles = await this.roleRepository.getRolesByPermissionId(permissionId);
+      info(`Retrieved roles for permission ID: ${permissionId}`);
+      return roles;
+    } catch (error) {
+      _error(`Error in getRolesByPermissionId: ${error.message}`);
+      throw error;
     }
   }
 }

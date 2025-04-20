@@ -1,6 +1,6 @@
 // ptilms-api/repositories/DepartmentRepository.js
 class DepartmentRepository {
-  constructor(Department) { // Expect model directly
+  constructor({ Department }) { // Changed to object parameter
     this.departmentModel = Department;
   }
 

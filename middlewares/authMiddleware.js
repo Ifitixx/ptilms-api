@@ -6,25 +6,20 @@ import { isBlacklisted } from '../utils/tokenBlacklist.js';
 import config from '../config/config.cjs';
 const { jwt: _jwt } = config;
 import { ROLES } from '../config/constants.mjs';
+import { models } from '../models/index.js';
+import { info, error } from '../utils/logger.js';
 
 const authenticateToken = async (req, res, next) => {
-  console.log('authenticateToken - Request (before):', {
-    method: req.method,
-    url: req.url,
-    path: req.path,
-    params: req.params,
-    query: req.query,
-  });
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
-  console.log(`Received token: ${token}`);
-
   if (!token) {
+    info(`Authentication failed: No token provided - ${req.method} ${req.path}`);
     return next(new UnauthorizedError('No token provided'));
   }
 
   if (await isBlacklisted(token)) {
+    info(`Authentication failed: Token revoked - ${req.method} ${req.path}`);
     return next(new UnauthorizedError('Token has been revoked'));
   }
 
@@ -33,28 +28,40 @@ const authenticateToken = async (req, res, next) => {
     req.user = decoded;
     next();
   } catch (err) {
+    error(`Authentication error: ${err.message} - ${req.method} ${req.path}`);
     next(new UnauthorizedError('Invalid token'));
   }
-
-  console.log('authenticateToken - Request (after):', {
-    method: req.method,
-    url: req.url,
-    path: req.path,
-    params: req.params,
-    query: req.query,
-    user: req.user,
-  });
 };
 
 const authorizeRole = (roles) => {
-  return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      const errorMessage = "You do not have permission to perform this action.";
-      console.log(`Authorization failed: User role '${req.user?.role}' does not match required roles [${roles.join(', ')}] for ${req.method} ${req.url}`);
-      return next(new ForbiddenError(errorMessage));
+  return async (req, res, next) => {
+    if (!req.user) {
+      info(`Authorization failed: No user context - ${req.method} ${req.path}`);
+      return next(new ForbiddenError("You do not have permission to perform this action."));
     }
-    next();
+
+    try {
+      const user = await models.User.findByPk(req.user.userId, {
+        include: [{ model: models.Role, as: 'role' }],
+      });
+
+      if (!user || !user.role) {
+        info(`Authorization failed: User or role not found - User ID: ${req.user.userId}`);
+        return next(new ForbiddenError("You do not have permission to perform this action."));
+      }
+
+      if (!roles.includes(user.role.name)) {
+        info(`Authorization failed: Invalid role - User: ${user.id}, Role: ${user.role.name}, Required: [${roles.join(', ')}]`);
+        return next(new ForbiddenError("You do not have permission to perform this action."));
+      }
+
+      next();
+    } catch (err) {
+      error(`Authorization error: ${err.message} - ${req.method} ${req.path}`);
+      return next(new ForbiddenError("You do not have permission to perform this action."));
+    }
   };
 };
 
-export default { authenticateToken, authorizeRole, ROLES };
+// Export both the middleware functions and ROLES object
+export { authenticateToken, authorizeRole, ROLES };

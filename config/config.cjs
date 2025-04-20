@@ -1,3 +1,4 @@
+//ptilms-api/config/config.cjs
 const { config } = require('dotenv');
 config();
 
@@ -34,6 +35,15 @@ module.exports = {
     port: parseInt(process.env.DB_PORT, 10) || 3306, // Added parseInt and default port
     username: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
+    pool: {
+      max: parseInt(process.env.DB_POOL_MAX, 10) || 20, // Maximum number of connection in pool
+      min: parseInt(process.env.DB_POOL_MIN, 10) || 5,  // Minimum number of connection in pool
+      acquire: parseInt(process.env.DB_POOL_ACQUIRE, 10) || 30000, // Maximum time, in milliseconds, that pool will try to get connection before throwing error
+      idle: parseInt(process.env.DB_POOL_IDLE, 10) || 10000,     // Maximum time, in milliseconds, that a connection can be idle before being released
+    },
+    retry: {
+      max: 3 // Maximum amount of connection retries
+    },
     define: {
       underscored: true,      // Converts camelCase to snake_case
       timestamps: true,       // Enables `created_at` and `updated_at` by default
@@ -64,4 +74,4 @@ module.exports = {
     pass: process.env.EMAIL_PASS,
     from: process.env.EMAIL_FROM,
   },
-};   
+};

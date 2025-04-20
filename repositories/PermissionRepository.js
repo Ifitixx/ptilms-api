@@ -1,6 +1,6 @@
 // ptilms-api/repositories/PermissionRepository.js
 class PermissionRepository {
-  constructor(Permission) { // Expect model directly
+  constructor({ Permission }) { // Changed to object parameter
     this.permissionModel = Permission;
   }
   

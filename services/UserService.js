@@ -130,8 +130,8 @@ class UserService {
     }
   
     // Update the password (without pre-hashing)
-    const updateData = { password: newPassword }; // Pass plain text newPassword
-    const updatedUser = await this.userRepository.updateUser(userId, updateData); // Use userId
+    const updateData = { password: newPassword }; 
+    const updatedUser = await this.userRepository.updateUser(userId, updateData); 
   
     if (!updatedUser) {
       throw new Error('Failed to update password');
@@ -152,7 +152,7 @@ class UserService {
     }
   }
 
-  async getModifiedUsers(since) { // Removed validation
+  async getModifiedUsers(since) { 
     return this.userRepository.getModifiedUsers(since);
   }
 }

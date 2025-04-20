@@ -79,7 +79,7 @@ export const COURSES = [
     code: "COM101",
     format: "Lecture",
     description: "Basic programming concepts",
-    department: "Computer Engineering Technology",
+    department: "Computer Science & Information Technology",
     level: "ND1",
     isDepartmental: true,
     units: 3,
@@ -112,7 +112,7 @@ export const COURSES = [
     code: "COM401",
     format: "Lecture",
     description: "Full-stack web development",
-    department: "Computer Engineering Technology",
+    department: "Computer Science & Information Technology",
     level: "HND2",
     isDepartmental: true,
     units: 4,
@@ -217,6 +217,11 @@ export const COURSES_MATERIALS = [
   },
 ];
 
+// Cache Keys
+export const CACHE_KEYS = {
+  ASSIGNMENT: 'assignment',
+};
+
 // Default export for compatibility
 export default {
   ROLES,
@@ -239,4 +244,5 @@ export default {
   CHAT_MESSAGES,
   COURSES_MATERIAL_TYPES,
   COURSES_MATERIALS,
+  CACHE_KEYS,
 };

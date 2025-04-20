@@ -1,96 +1,86 @@
 // ptilms-api/services/CourseService.js
-import { NotFoundError, ConflictError } from '../utils/errors.js';
-import { error as _error } from '../utils/logger.js';
+import { CourseNotFoundError, BadRequestError, ValidationError } from '../utils/errors.js';
+import validator from 'validator';
 
 class CourseService {
-  constructor({ courseRepository }) {
+  constructor({ courseRepository, departmentRepository, levelRepository, userRepository }) {
     this.courseRepository = courseRepository;
+    this.departmentRepository = departmentRepository;
+    this.levelRepository = levelRepository;
+    this.userRepository = userRepository;
   }
 
-  async getAllCourses() {
-    try {
-      return await this.courseRepository.getAllCourses();
-    } catch (error) {
-      _error(`Error in getAllCourses: ${error.message}`);
-      throw error;
-    }
+  async getAllCourses(filters) {
+    return this.courseRepository.findAll(filters);
   }
 
   async getCourseById(courseId) {
-    try {
-      const course = await this.courseRepository.getCourseById(courseId);
-      if (!course) {
-        throw new NotFoundError('Course not found');
-      }
-      return course;
-    } catch (error) {
-      _error(`Error in getCourseById: ${error.message}`);
-      throw error;
+    if (!validator.isUUID(courseId)) {
+      throw new ValidationError([{ field: 'courseId', message: 'Invalid UUID format' }]);
     }
+    const course = await this.courseRepository.findById(courseId);
+    if (!course) {
+      throw new CourseNotFoundError();
+    }
+    return course;
   }
 
-  async createCourse(data) {
-    try {
-      // 1) Pre-flight: does this title already exist?
-      const existing = await this.courseRepository.findByTitle(data.title);
-      if (existing) {
-        throw new ConflictError(`A course with title "${data.title}" already exists.`);
-      }
-      // 2) Safe to create
-      return await this.courseRepository.createCourse(data);
-    } catch (error) { // Changed err to error for consistency
-      _error(`Error in createCourse: ${error.message}`);
-      throw error;
+  async createCourse(courseData) {
+    const { title, code, format, description, departmentId, levelId, isDepartmental = false, units = 0 } = courseData;
+
+    if (!title || !code || !format || !description || !departmentId || !levelId) {
+      throw new BadRequestError('Missing required course fields');
     }
+
+    if (!validator.isUUID(departmentId)) {
+      throw new ValidationError([{ field: 'departmentId', message: 'Invalid UUID' }]);
+    }
+
+    if (!validator.isUUID(levelId)) {
+      throw new ValidationError([{ field: 'levelId', message: 'Invalid UUID' }]);
+    }
+
+    if (!Number.isInteger(units) || units < 1) {
+      throw new ValidationError([{ field: 'units', message: 'Units must be a positive integer' }]);
+    }
+
+    return this.courseRepository.create({
+      title,
+      code,
+      format,
+      description,
+      departmentId,
+      levelId,
+      isDepartmental,
+      units,
+    });
   }
 
-  async updateCourse(courseId, data) {
-    try {
-      const course = await this.courseRepository.updateCourse(courseId, data);
-      if (!course) {
-        throw new NotFoundError('Course not found');
-      }
-      return course;
-    } catch (error) {
-      _error(`Error in updateCourse: ${error.message}`);
-      throw error;
+  async updateCourse(courseId, updates) {
+    if (!validator.isUUID(courseId)) {
+      throw new ValidationError([{ field: 'courseId', message: 'Invalid UUID format' }]);
     }
+
+    if (updates.units !== undefined && (!Number.isInteger(updates.units) || updates.units < 1)) {
+      throw new ValidationError([{ field: 'units', message: 'Units must be a positive integer' }]);
+    }
+
+    const updatedCourse = await this.courseRepository.update(courseId, updates);
+    if (!updatedCourse) {
+      throw new CourseNotFoundError();
+    }
+    return updatedCourse;
   }
 
   async deleteCourse(courseId) {
-    try {
-      const success = await this.courseRepository.deleteCourse(courseId);
-      if (!success) {
-        throw new NotFoundError('Course not found');
-      }
-    } catch (error) {
-      _error(`Error in deleteCourse: ${error.message}`);
-      throw error;
+    if (!validator.isUUID(courseId)) {
+      throw new ValidationError([{ field: 'courseId', message: 'Invalid UUID format' }]);
     }
-  }
-  async getCoursesByDepartmentId(departmentId) {
-    try {
-      return await this.courseRepository.getCoursesByDepartmentId(departmentId);
-    } catch (error) {
-      _error(`Error in getCoursesByDepartmentId: ${error.message}`);
-      throw error;
+    const courseExists = await this.courseRepository.findById(courseId);
+    if (!courseExists) {
+      throw new CourseNotFoundError();
     }
-  }
-  async getCoursesByLevelId(levelId) {
-    try {
-      return await this.courseRepository.getCoursesByLevelId(levelId);
-    } catch (error) {
-      _error(`Error in getCoursesByLevelId: ${error.message}`);
-      throw error;
-    }
-  }
-  async getCoursesByLecturerId(lecturerId) {
-    try {
-      return await this.courseRepository.getCoursesByLecturerId(lecturerId);
-    } catch (error) {
-      _error(`Error in getCoursesByLecturerId: ${error.message}`);
-      throw error;
-    }
+    await this.courseRepository.delete(courseId);
   }
 }
 

@@ -1,6 +1,6 @@
 // ptilms-api/repositories/AssignmentRepository.js
 class AssignmentRepository {
-  constructor(Assignment, Course) { // Expect models directly
+  constructor({ Assignment, Course }) { // Changed to object parameter
     this.assignmentModel = Assignment;
     this.courseModel = Course;
   }

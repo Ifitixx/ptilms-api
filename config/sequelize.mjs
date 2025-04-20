@@ -1,11 +1,11 @@
 // ptilms-api/config/sequelize.mjs
-import config from './config.cjs';
+import { Sequelize } from 'sequelize';
+import 'dotenv/config';
 
-const sequelizeConfig = {
-  [config.env]: {
-    ...config.database,
-    logging: (msg) => console.log(msg), // Keep logging within the config
-  },
-};
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+  dialect:        'mysql',
+  logging:        console.log,
+  dialectOptions: { bigNumberStrings: true }
+});
 
-export default sequelizeConfig;
+export default sequelize;

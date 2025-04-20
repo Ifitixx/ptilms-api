@@ -22,16 +22,18 @@ class AnnouncementController {
 
   async getAnnouncementById(req, res, next) {
     try {
-      const { announcementId } = req.params;
-      // Validate announcementId format
-      if (!validator.isUUID(announcementId)) {
-        throw new ValidationError([{ field: 'announcementId', message: 'Invalid announcementId format' }]);
+      const { id } = req.params;  // Changed from announcementId to id to match route parameter
+      if (!validator.isUUID(id)) {
+        throw new ValidationError([{ field: 'id', message: 'Invalid announcement ID format' }]);
       }
-      const announcement = await this.announcementService.getAnnouncementById(announcementId);
+      const announcement = await this.announcementService.getAnnouncementById(id);
       if (!announcement) {
         throw new AnnouncementNotFoundError();
       }
-      res.json(announcement);
+      res.json({
+        success: true,
+        data: announcement
+      });
     } catch (error) {
       next(error);
     }
@@ -40,7 +42,6 @@ class AnnouncementController {
   async getAnnouncementsByCourseId(req, res, next) {
     try {
       const { courseId } = req.params;
-      // Validate courseId format
       if (!validator.isUUID(courseId)) {
         throw new ValidationError([{ field: 'courseId', message: 'Invalid courseId format' }]);
       }
@@ -54,7 +55,6 @@ class AnnouncementController {
   async getAnnouncementsByLecturerId(req, res, next) {
     try {
       const { lecturerId } = req.params;
-      // Validate lecturerId format
       if (!validator.isUUID(lecturerId)) {
         throw new ValidationError([{ field: 'lecturerId', message: 'Invalid lecturerId format' }]);
       }
@@ -67,20 +67,28 @@ class AnnouncementController {
 
   async createAnnouncement(req, res, next) {
     try {
-      const { title, content, departmentId, levelId } = req.body;
-      if (!title || !content || !departmentId || !levelId) {
-        throw new BadRequestError('Title, content, departmentId, and levelId are required');
+      const { title, content, departmentId, levelId, courseId } = req.body;
+      const userId = req.user.userId; // Extract userId from the authenticated request
+      const userRole = req.user.role; // Extract user role from the request
+
+      if (!userId) {
+        throw new BadRequestError('User ID is required');
       }
-      // Validate departmentId format
-      if (!validator.isUUID(departmentId)) {
-        throw new ValidationError([{ field: 'departmentId', message: 'Invalid departmentId format' }]);
-      }
-      // Validate levelId format
-      if (!validator.isUUID(levelId)) {
-        throw new ValidationError([{ field: 'levelId', message: 'Invalid levelId format' }]);
-      }
-      const announcement = await this.announcementService.createAnnouncement(req.body);
-      res.status(201).json(announcement);
+
+      const announcement = await this.announcementService.createAnnouncement(
+        title,
+        content,
+        departmentId,
+        levelId,
+        userId,
+        courseId,
+        userRole // Pass the user role to the service
+      );
+
+      res.status(201).json({
+        success: true,
+        data: announcement
+      });
     } catch (error) {
       next(error);
     }
@@ -88,16 +96,18 @@ class AnnouncementController {
 
   async updateAnnouncement(req, res, next) {
     try {
-      const { announcementId } = req.params;
-      // Validate announcementId format
-      if (!validator.isUUID(announcementId)) {
-        throw new ValidationError([{ field: 'announcementId', message: 'Invalid announcementId format' }]);
+      const { id } = req.params;  // Changed from announcementId to id to match route parameter
+      if (!validator.isUUID(id)) {
+        throw new ValidationError([{ field: 'id', message: 'Invalid announcement ID format' }]);
       }
-      const announcement = await this.announcementService.updateAnnouncement(announcementId, req.body);
+      const announcement = await this.announcementService.updateAnnouncement(id, req.body);
       if (!announcement) {
         throw new AnnouncementNotFoundError();
       }
-      res.json(announcement);
+      res.json({
+        success: true,
+        data: announcement
+      });
     } catch (error) {
       next(error);
     }
@@ -105,16 +115,15 @@ class AnnouncementController {
 
   async deleteAnnouncement(req, res, next) {
     try {
-      const { announcementId } = req.params;
-      // Validate announcementId format
-      if (!validator.isUUID(announcementId)) {
-        throw new ValidationError([{ field: 'announcementId', message: 'Invalid announcementId format' }]);
+      const { id } = req.params;  // Changed from announcementId to id to match route parameter
+      if (!validator.isUUID(id)) {
+        throw new ValidationError([{ field: 'id', message: 'Invalid announcement ID format' }]);
       }
-      const announcement = await this.announcementService.getAnnouncementById(announcementId);
+      const announcement = await this.announcementService.getAnnouncementById(id);
       if (!announcement) {
         throw new AnnouncementNotFoundError();
       }
-      await this.announcementService.deleteAnnouncement(announcementId);
+      await this.announcementService.deleteAnnouncement(id);
       res.status(204).send();
     } catch (error) {
       next(error);

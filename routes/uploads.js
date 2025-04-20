@@ -1,14 +1,13 @@
 // ptilms-api/routes/uploads.js
-// ptilms-api/routes/uploads.js
 import { Router } from 'express';
-import multer, { diskStorage } from 'multer';
+import multer from 'multer';
+import { diskStorage } from 'multer';
 import fs from 'fs';
 import path from 'path';
 import sanitize from 'sanitize-filename';
-import { v4 as uuidv4 } from 'uuid'; // For generating unique filenames
+import { v4 as uuidv4 } from 'uuid';
+import { authenticateToken } from '../middlewares/authMiddleware.js';
 const router = Router();
-import authMiddleware from '../middlewares/authMiddleware.js';
-const { authenticateToken } = authMiddleware;
 
 // --- Configuration ---
 

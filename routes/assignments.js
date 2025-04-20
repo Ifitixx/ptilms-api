@@ -1,24 +1,74 @@
 // ptilms-api/routes/assignments.js
-import { Router } from 'express';
-import authMiddleware from '../middlewares/authMiddleware.js';
-const { authenticateToken, authorizeRole, ROLES } = authMiddleware;
-const router = Router();
+import express from 'express';
+import { authenticateToken, authorizeRole } from '../middlewares/authMiddleware.js';
+import { validate, validationSchemas } from '../middlewares/validationMiddleware.js';
+import cacheMiddleware from '../middlewares/cacheMiddleware.js';
+import rateLimiter from '../middlewares/rateLimiter.js';
+import { ROLES } from '../config/constants.mjs';
 
-export default (assignmentController) => {
-  // Both admins and lecturers can create assignments
-  router.post('/', authenticateToken, authorizeRole([ROLES.ADMIN, ROLES.LECTURER]), (req, res, next) => assignmentController.createAssignment(req, res, next));
+const createAssignmentRoutes = (assignmentController) => {
+  const router = express.Router();
+  const { uploadLimiter } = rateLimiter;
 
-  // Only admins can delete assignments
-  router.delete('/:id', authenticateToken, authorizeRole([ROLES.ADMIN]), (req, res, next) => assignmentController.deleteAssignment(req, res, next));
+  // List all assignments (cached for 15 minutes)
+  router.get('/',
+    authenticateToken,
+    cacheMiddleware('assignments', 900),
+    assignmentController.getAllAssignments
+  );
 
-  // Both admins and lecturers can get all assignments
-  router.get('/', authenticateToken, authorizeRole([ROLES.ADMIN, ROLES.LECTURER]), (req, res, next) => assignmentController.getAllAssignments(req, res, next));
+  // Get single assignment (cached for 15 minutes)
+  router.get('/:id',
+    authenticateToken,
+    cacheMiddleware('assignment', 900),
+    assignmentController.getAssignmentById
+  );
 
-  // Both admins and lecturers can get a specific assignment
-  router.get('/:id', authenticateToken, authorizeRole([ROLES.ADMIN, ROLES.LECTURER]), (req, res, next) => assignmentController.getAssignmentById(req, res, next));
+  // Create assignment (instructors and admins only)
+  router.post('/',
+    authenticateToken,
+    authorizeRole([ROLES.INSTRUCTOR, ROLES.ADMIN]),
+    uploadLimiter,
+    validate(validationSchemas.createAssignment),
+    assignmentController.createAssignment
+  );
 
-  // Both admins and lecturers can update an assignment
-  router.put('/:id', authenticateToken, authorizeRole([ROLES.ADMIN, ROLES.LECTURER]), (req, res, next) => assignmentController.updateAssignment(req, res, next));
+  // Update assignment (instructors and admins only)
+  router.put('/:id',
+    authenticateToken,
+    authorizeRole([ROLES.INSTRUCTOR, ROLES.ADMIN]),
+    validate(validationSchemas.createAssignment),
+    assignmentController.updateAssignment
+  );
+
+  // Delete assignment (instructors and admins only)
+  router.delete('/:id',
+    authenticateToken,
+    authorizeRole([ROLES.INSTRUCTOR, ROLES.ADMIN]),
+    assignmentController.deleteAssignment
+  );
+
+  // Submit assignment (students only)
+  router.post('/:id/submit',
+    authenticateToken,
+    authorizeRole([ROLES.STUDENT]),
+    uploadLimiter,
+    validate([
+      body('submissionText').optional().trim().isLength({ max: 5000 }),
+      body('courseId').isInt({ min: 1 }).withMessage('Valid course ID is required')
+    ]),
+    assignmentController.submitAssignment
+  );
+
+  // Get assignment submissions (instructors and admins only)
+  router.get('/:id/submissions',
+    authenticateToken,
+    authorizeRole([ROLES.INSTRUCTOR, ROLES.ADMIN]),
+    cacheMiddleware('assignment-submissions', 300), // Cache for 5 minutes
+    assignmentController.getAssignmentSubmissions
+  );
 
   return router;
 };
+
+export default createAssignmentRoutes;

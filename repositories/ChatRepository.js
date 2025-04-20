@@ -1,6 +1,6 @@
 // ptilms-api/repositories/ChatRepository.js
 class ChatRepository {
-  constructor(Chat, User) { // Expect models directly
+  constructor({ Chat, User }) { // Changed to object parameter
     this.chatModel = Chat;
     this.userModel = User;
   }

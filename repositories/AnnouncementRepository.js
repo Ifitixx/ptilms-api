@@ -8,17 +8,20 @@ class AnnouncementRepository {
     this.levelModel = Level;
   }
 
+  async findExistingAnnouncement(title, courseId) {
+    return await this.announcementModel.findOne({
+      where: {
+        title,
+        courseId
+      }
+    });
+  }
+
   async getAllAnnouncements() {
     return await this.announcementModel.findAll({
       include: [
-        {
-          model: this.userModel,
-          as: 'lecturer',
-        },
-        {
-          model: this.courseModel,
-          as: 'course',
-        },
+        { model: this.userModel, as: 'creator' },
+        { model: this.courseModel, as: 'course' },
       ],
     });
   }
@@ -26,20 +29,14 @@ class AnnouncementRepository {
   async getAnnouncementById(announcementId) {
     return await this.announcementModel.findByPk(announcementId, {
       include: [
-        {
-          model: this.userModel,
-          as: 'lecturer',
-        },
-        {
-          model: this.courseModel,
-          as: 'course',
-        },
+        { model: this.userModel, as: 'creator' },
+        { model: this.courseModel, as: 'course' },
       ],
     });
   }
 
-  async createAnnouncement(data) {
-    return await this.announcementModel.create(data);
+  async createAnnouncement(data, options = {}) { // Added options parameter
+    return await this.announcementModel.create(data, options); // Passed options to create
   }
 
   async updateAnnouncement(announcementId, data) {
@@ -54,33 +51,23 @@ class AnnouncementRepository {
     await announcement.destroy();
     return true;
   }
+
   async getAnnouncementsByCourseId(courseId) {
     return await this.announcementModel.findAll({
-      where: { courseId: courseId },
+      where: { courseId },
       include: [
-        {
-          model: this.userModel,
-          as: 'lecturer',
-        },
-        {
-          model: this.courseModel,
-          as: 'course',
-        },
+        { model: this.userModel, as: 'creator' },
+        { model: this.courseModel, as: 'course' },
       ],
     });
   }
+
   async getAnnouncementsByLecturerId(lecturerId) {
     return await this.announcementModel.findAll({
-      where: { lecturerId: lecturerId },
+      where: { userId: lecturerId },
       include: [
-        {
-          model: this.userModel,
-          as: 'lecturer',
-        },
-        {
-          model: this.courseModel,
-          as: 'course',
-        },
+        { model: this.userModel, as: 'creator' },
+        { model: this.courseModel, as: 'course' },
       ],
     });
   }

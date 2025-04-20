@@ -1,6 +1,6 @@
 // ptilms-api/repositories/LevelRepository.js
 class LevelRepository {
-  constructor(Level) { // Expect model directly
+  constructor({ Level }) { // Changed to object parameter
     this.levelModel = Level;
   }
     async getAllLevels() {

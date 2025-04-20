@@ -1,10 +1,59 @@
-// ptilms-api/config/database.cjs
-const { Sequelize } = require('sequelize');
-const config = require('./config.cjs');
+require('dotenv').config();
 
-const sequelize = new Sequelize(config.database.url, {
-  logging: console.log, // Enables query logging in development
-  ...config.database,  // Pass other database options, including `define`
-});
-
-module.exports = sequelize;
+module.exports = {
+  development: {
+    url: process.env.DATABASE_URL,
+    dialect: 'mysql',
+    dialectOptions: {
+      bigNumberStrings: true
+    },
+    define: {
+      underscored: true,
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      deletedAt: 'deleted_at',
+      paranoid: true,
+    }
+  },
+  test: {
+    url: process.env.DATABASE_URL,
+    dialect: 'mysql',
+    dialectOptions: {
+      bigNumberStrings: true
+    },
+    define: {
+      underscored: true,
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      deletedAt: 'deleted_at',
+      paranoid: true,
+    }
+  },
+  production: {
+    url: process.env.DATABASE_URL,
+    dialect: 'mysql',
+    dialectOptions: {
+      bigNumberStrings: true,
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    },
+    define: {
+      underscored: true,
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      deletedAt: 'deleted_at',
+      paranoid: true,
+    },
+    pool: {
+      max: 20,
+      min: 5,
+      acquire: 30000,
+      idle: 10000
+    }
+  }
+};
