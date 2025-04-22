@@ -127,6 +127,16 @@ const validationSchemas = {
       .withMessage('Valid user ID is required')
   ],
 
+  submitAssignment: [
+    body('submissionText')
+      .optional()
+      .trim()
+      .isLength({ max: 5000 })
+      .withMessage('Submission text must not exceed 5000 characters'),
+    // No need to validate file size/type here, multer already handles it
+    // We just need to ensure either text or a file is present (handled in controller)
+  ],
+
   updateChatMessage: [
     commonValidations.message()
   ],

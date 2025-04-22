@@ -1,12 +1,13 @@
 // ptilms-api/routes/chatMessages.js
-import { Router } from 'express';
+import express from 'express';
 import { authenticateToken, authorizeRole } from '../middlewares/authMiddleware.js';
 import { validate, validationSchemas } from '../middlewares/validationMiddleware.js';
 import { param } from 'express-validator';
 import { ROLES } from '../config/constants.mjs';
-const router = Router();
 
-export default (chatMessageController) => {
+const createChatMessagesRoutes = (chatMessageController) => {
+  const router = express.Router();
+
   // Create chat message
   router.post('/', 
     authenticateToken, 
@@ -75,3 +76,5 @@ export default (chatMessageController) => {
 
   return router;
 };
+
+export default createChatMessagesRoutes;

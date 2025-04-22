@@ -1,12 +1,13 @@
 // ptilms-api/routes/announcements.js
-import { Router } from 'express';
+import express from 'express';
 import { authenticateToken, authorizeRole } from '../middlewares/authMiddleware.js';
 import { validate, validationSchemas } from '../middlewares/validationMiddleware.js';
 import { body, param } from 'express-validator';
 import { ROLES } from '../config/constants.mjs';
-const router = Router();
 
-export default (announcementController) => {
+const createAnnouncementRoutes = (announcementController) => {
+  const router = express.Router();
+
   // Both admins and lecturers can create announcements
   router.post('/', 
     authenticateToken, 
@@ -82,3 +83,5 @@ export default (announcementController) => {
 
   return router;
 };
+
+export default createAnnouncementRoutes;

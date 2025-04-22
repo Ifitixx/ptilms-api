@@ -1,12 +1,13 @@
 // ptilms-api/routes/chats.js
-import { Router } from 'express';
+import express from 'express';
 import { authenticateToken, authorizeRole } from '../middlewares/authMiddleware.js';
 import { validate, validationSchemas } from '../middlewares/validationMiddleware.js';
 import { body, param } from 'express-validator';
 import { ROLES } from '../config/constants.mjs';
-const router = Router();
 
-export default (chatController) => {
+const createChatRoutes = (chatController) => {
+  const router = express.Router();
+
   // Both admins and lecturers can create chats
   router.post('/', 
     authenticateToken, 
@@ -81,3 +82,5 @@ export default (chatController) => {
 
   return router;
 };
+
+export default createChatRoutes;

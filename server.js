@@ -46,9 +46,16 @@ const app = express();
 let server;
 let container;
 
+// Middleware setup
 const setupMiddleware = (app) => {
   // Enable compression early in the middleware chain
   app.use(compressionMiddleware);
+
+  // Basic middleware
+  app.use(cors(config.cors));
+  app.use(json({ limit: '10mb' }));
+  app.use(urlencoded({ extended: true, limit: '10mb' }));
+  app.set('trust proxy', 1);
 
   // Security headers
   app.use(helmet({
@@ -78,29 +85,33 @@ const setupMiddleware = (app) => {
     xssFilter: true
   }));
 
-  // Add tracing middleware early to track all requests
+  // Add tracing middleware
   app.use(tracingMiddleware());
 
-  // Basic middleware
-  app.use(cors(config.cors));
-  app.use(json({ limit: '10mb' }));
-  app.use(urlencoded({ extended: true, limit: '10mb' }));
-  app.set('trust proxy', 1);
-
   // Add request ID and monitoring
-  app.use(monitoringMiddleware(container.monitoringService));
+  app.use(monitoringMiddleware(container?.monitoringService));
 
   // Rate limiting
   const { apiLimiter } = rateLimiter;
   app.use('/api/', apiLimiter);
 
   // Static files with caching and security headers
+  app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+    maxAge: '1d',
+    setHeaders: (res) => {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    }
+  }));
+
   app.use(express.static(path.join(__dirname, 'public'), {
     maxAge: '1d',
     setHeaders: (res) => {
       res.setHeader('X-Content-Type-Options', 'nosniff');
     }
   }));
+
+  // Error handling - must be last
+  app.use(errorHandler);
 };
 
 const setupRoutes = (app, container) => {
@@ -208,10 +219,6 @@ const setupRoutes = (app, container) => {
       }
     }));
     info('API documentation setup complete');
-
-    // Error handling - must be last
-    app.use(errorHandler);
-    info('Error handler setup complete');
   } catch (err) {
     _error('Error setting up routes:', err);
     throw err;
@@ -229,7 +236,7 @@ const initializeServer = async () => {
     info('Database synchronized successfully.');
 
     // Initialize container and services
-    container = initializeContainer({ sequelize, models });
+    container = await initializeContainer({ sequelize, models });
     info('Container and services initialized successfully.');
 
     // Create default roles if needed

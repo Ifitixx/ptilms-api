@@ -5,26 +5,51 @@ import { validate, validationSchemas } from '../middlewares/validationMiddleware
 import cacheMiddleware from '../middlewares/cacheMiddleware.js';
 import rateLimiter from '../middlewares/rateLimiter.js';
 import { ROLES } from '../config/constants.mjs';
-import { body } from 'express-validator'; // <-- ADD THIS IMPORT
+import multer from 'multer'; // Import multer
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const createAssignmentRoutes = (assignmentController) => {
   const router = express.Router();
   const { uploadLimiter } = rateLimiter;
-
+  // Multer configuration
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, path.join(__dirname, '../uploads/submissions/')); // Store files in 'uploads/submissions'
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    },
+  });
+  const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB file size limit
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = /pdf|jpeg|png/;
+      const mimeType = allowedTypes.test(file.mimetype);
+      const extName = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+      if (mimeType && extName) {
+        return cb(null, true);
+      }
+      cb(new Error('Invalid file type. Only PDF, JPEG, and PNG are allowed.'));
+    },
+  });
   // List all assignments (cached for 15 minutes)
   router.get('/',
     authenticateToken,
     cacheMiddleware('assignments', 900),
     assignmentController.getAllAssignments
   );
-
   // Get single assignment (cached for 15 minutes)
   router.get('/:id',
     authenticateToken,
     cacheMiddleware('assignment', 900),
     assignmentController.getAssignmentById
   );
-
   // Create assignment (instructors and admins only)
   router.post('/',
     authenticateToken,
@@ -33,7 +58,6 @@ const createAssignmentRoutes = (assignmentController) => {
     validate(validationSchemas.createAssignment),
     assignmentController.createAssignment
   );
-
   // Update assignment (instructors and admins only)
   router.put('/:id',
     authenticateToken,
@@ -42,49 +66,33 @@ const createAssignmentRoutes = (assignmentController) => {
     validate(validationSchemas.createAssignment), // Assuming update schema is same as create for now
     assignmentController.updateAssignment
   );
-
   // Delete assignment (instructors and admins only)
   router.delete('/:id',
     authenticateToken,
     authorizeRole([ROLES.INSTRUCTOR, ROLES.ADMIN]),
     assignmentController.deleteAssignment
   );
-
   // Submit assignment (students only)
   router.post('/:id/submit',
     authenticateToken,
     authorizeRole([ROLES.STUDENT]),
+    upload.single('submissionFile'), // Use multer middleware for single file upload
     uploadLimiter, // Consider if file uploads need a different limit or middleware
-    validate(validationSchemas.submitAssignment || [
-      body('submissionText').optional().trim().isLength({ max: 5000 }),
-      // Assuming courseId is part of the body for submission, but it might be available from the assignment itself
-      // Based on your Assignment model, courseId is a field. Validation should ensure it's a valid UUID.
-      body('courseId').optional().isUUID().withMessage('Valid course ID is required'), // Assuming optional here, adjust as needed
-      // Add validation for file uploads if applicable (e.g., using check or body with multer)
-      // Example: body('submissionFile').custom((value, { req }) => { ... file validation ... })
-    ]),
-    assignmentController.submitAssignment // Ensure this method exists in AssignmentController
+    validate(validationSchemas.submitAssignment),
+    assignmentController.submitAssignment
   );
-
   // Get assignment submissions (instructors and admins only)
   router.get('/:id/submissions',
     authenticateToken,
     authorizeRole([ROLES.INSTRUCTOR, ROLES.ADMIN]),
     cacheMiddleware('assignment-submissions', 300), // Cache for 5 minutes
-    assignmentController.getAssignmentSubmissions // Ensure this method exists
+    assignmentController.getSubmissionsByAssignment // Ensure this method exists
   );
-
-   // Get assignments by course ID (assuming a route like /course/:courseId/assignments)
-   // This route path was not in server.js, verify if it's used elsewhere or intended
-   // If intended, add app.use('/api/v1/assignments/course', ...) in server.js, or integrate into /assignments
-   router.get('/course/:courseId',
-     authenticateToken,
-     cacheMiddleware('course-assignments', 600), // Cache for 10 minutes
-     assignmentController.getAssignmentsByCourseId // Ensure this method exists
-   );
-
-
+  // Get a specific submission for an assignment by a user (students and instructors)
+  router.get('/:id/submissions/me',
+    authenticateToken,
+    assignmentController.getSubmission
+  );
   return router;
 };
-
 export default createAssignmentRoutes;

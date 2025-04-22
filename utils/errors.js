@@ -156,6 +156,12 @@ class AuthorizationError extends ForbiddenError {
   }
 }
 
+class SubmissionError extends BaseError {
+  constructor(message = 'Submission error') {
+    super(message, 400); 
+  }
+}
+
 export {
   BaseError,
   ValidationError,
@@ -183,4 +189,5 @@ export {
   RoleNotFoundError,
   RolePermissionNotFoundError,
   AuthorizationError,
+  SubmissionError
 };
