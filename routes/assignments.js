@@ -8,6 +8,8 @@ import { ROLES } from '../config/constants.mjs';
 import multer from 'multer'; // Import multer
 import path from 'path';
 import { fileURLToPath } from 'url';
+import s3 from '../config/aws.js';
+import { v4 as uuidv4 } from 'uuid';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,29 +17,25 @@ const __dirname = path.dirname(__filename);
 const createAssignmentRoutes = (assignmentController) => {
   const router = express.Router();
   const { uploadLimiter } = rateLimiter;
+
   // Multer configuration
-  const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, path.join(__dirname, '../uploads/submissions/')); // Store files in 'uploads/submissions'
-    },
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-    },
-  });
+  const storage = multer.memoryStorage();
   const upload = multer({
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB file size limit
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
     fileFilter: (req, file, cb) => {
       const allowedTypes = /pdf|jpeg|png/;
-      const mimeType = allowedTypes.test(file.mimetype);
-      const extName = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-      if (mimeType && extName) {
-        return cb(null, true);
+      const extname = path.extname(file.originalname).toLowerCase().replace('.', '');
+      const mimetype = allowedTypes.test(file.mimetype);
+
+      if (mimetype && allowedTypes.test(extname)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only PDF, JPEG, and PNG are allowed.'), false);
       }
-      cb(new Error('Invalid file type. Only PDF, JPEG, and PNG are allowed.'));
     },
   });
+
   // List all assignments (cached for 15 minutes)
   router.get('/',
     authenticateToken,

@@ -1,3 +1,4 @@
+// ptilms-api/migrations/20250414090318-add-not-null-constraint-to-assignments.js
 'use strict';
 
 /** @type {import('sequelize-cli').Migration} */

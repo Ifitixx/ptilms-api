@@ -6,6 +6,7 @@ import {
     SubmissionError,
 } from '../utils/errors.js';
 import validator from 'validator';
+import config from '../config/config.cjs';
 
 class AssignmentController {
     constructor({ assignmentService }) {
@@ -114,69 +115,75 @@ class AssignmentController {
 
     async submitAssignment(req, res, next) {
         try {
-          const { id: assignmentId } = req.params;
-          const userId = req.user.id; // Assuming user ID is available in req.user
-          const { submissionText } = req.body;
-          const submissionFile = req.file; // Get the uploaded file
-          // Validate assignmentId format
-          if (!validator.isUUID(assignmentId)) {
-            throw new ValidationError([{ field: 'assignmentId', message: 'Invalid assignmentId format' }]);
-          }
-          // Validate submission data: either text or file must be provided
-          if (!submissionText && !submissionFile) {
-            throw new BadRequestError('Submission must include either text or a file.');
-          }
-          // Get the file path if a file was uploaded
-          const submissionFileUrl = submissionFile ? `/uploads/submissions/${submissionFile.filename}` : null;
-          const submission = await this.assignmentService.submitAssignment(
-            assignmentId,
-            userId,
-            submissionText,
-            submissionFileUrl
-        );
-        res.status(201).json(submission);
-      } catch (error) {
-        if (error instanceof SubmissionError) {
-          // Handle specific submission errors (e.g., duplicate submissions)
-          return res.status(400).json({ errors: [{ message: error.message }] });
+            const { id: assignmentId } = req.params;
+            const userId = req.user.id; // Assuming user ID is available in req.user
+            const { submissionText } = req.body;
+            const fileData = req.body.fileData; // Get file data from the request
+
+            // Validate assignmentId format
+            if (!validator.isUUID(assignmentId)) {
+                throw new ValidationError([{ field: 'assignmentId', message: 'Invalid assignmentId format' }]);
+            }
+
+            // Validate submission data: either text or file must be provided
+            if (!submissionText && (!fileData || !fileData.fileName || !fileData.originalName)) {
+                throw new BadRequestError('Submission must include either text or a file.');
+            }
+
+            const submission = await this.assignmentService.submitAssignment({
+                assignmentId,
+                userId,
+                submissionText,
+                fileKey: fileData?.fileName, // Store the fileKey
+                originalFilename: fileData?.originalName, // Store the originalFilename
+            });
+
+            res.status(201).json({
+                ...submission.toJSON(),
+                url: fileData ? `${config.minio.endpoint}/ptilms-uploads/submissions/${fileData.fileName}` : null
+            });
+        } catch (error) {
+            if (error instanceof SubmissionError) {
+                // Handle specific submission errors (e.g., duplicate submissions)
+                return res.status(400).json({ errors: [{ message: error.message }] });
+            }
+            next(error);
         }
-        next(error);
-      }
     }
 
     async getSubmission(req, res, next) {
-    try {
-      const { id: assignmentId } = req.params;
-      const userId = req.user.id; // Assuming user ID is available in req.user
-      // Validate assignmentId format
-      if (!validator.isUUID(assignmentId)) {
-        throw new ValidationError([{ field: 'assignmentId', message: 'Invalid assignmentId format' }]);
-      }
-      const submission = await this.assignmentService.getSubmission(assignmentId, userId);
-      if (!submission) {
-        return res.status(204).send(); // No Content if no submission found
-      }
-      res.status(200).json(submission);
-    } catch (error) {
-      next(error);
+        try {
+            const { id: assignmentId } = req.params;
+            const userId = req.user.id; // Assuming user ID is available in req.user
+            // Validate assignmentId format
+            if (!validator.isUUID(assignmentId)) {
+                throw new ValidationError([{ field: 'assignmentId', message: 'Invalid assignmentId format' }]);
+            }
+            const submission = await this.assignmentService.getSubmission(assignmentId, userId);
+            if (!submission) {
+                return res.status(204).send(); // No Content if no submission found
+            }
+            res.status(200).json(submission);
+        } catch (error) {
+            next(error);
+        }
     }
-  }
 
-  async getSubmissionsByAssignment(req, res, next) {
-    try {
-      const { id: assignmentId } = req.params;
-      // In a real application, you'd likely have authorization checks here
-      // to ensure only authorized users (e.g., instructors) can access all submissions
-      // Validate assignmentId format
-      if (!validator.isUUID(assignmentId)) {
-        throw new ValidationError([{ field: 'assignmentId', message: 'Invalid assignmentId format' }]);
-      }
-      const submissions = await this.assignmentService.getSubmissionsByAssignment(assignmentId);
-      res.status(200).json(submissions);
-    } catch (error) {
-      next(error);
+    async getSubmissionsByAssignment(req, res, next) {
+        try {
+            const { id: assignmentId } = req.params;
+            // In a real application, you'd likely have authorization checks here
+            // to ensure only authorized users (e.g., instructors) can access all submissions
+            // Validate assignmentId format
+            if (!validator.isUUID(assignmentId)) {
+                throw new ValidationError([{ field: 'assignmentId', message: 'Invalid assignmentId format' }]);
+            }
+            const submissions = await this.assignmentService.getSubmissionsByAssignment(assignmentId);
+            res.status(200).json(submissions);
+        } catch (error) {
+            next(error);
+        }
     }
-  }
 }
 
 export default AssignmentController;

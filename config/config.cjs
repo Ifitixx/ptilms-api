@@ -12,6 +12,15 @@ if (!process.env.JWT_REFRESH_SECRET) {
 if (!process.env.DATABASE_URL) {
   throw new Error('Error: DATABASE_URL environment variable is not set.');
 }
+if (!process.env.MINIO_ENDPOINT) {
+  throw new Error('Error: MINIO_ENDPOINT environment variable is not set.');
+}
+if (!process.env.MINIO_ACCESS_KEY) {
+  throw new Error('Error: MINIO_ACCESS_KEY environment variable is not set.');
+}
+if (!process.env.MINIO_SECRET_KEY) {
+  throw new Error('Error: MINIO_SECRET_KEY environment variable is not set.');
+}
 
 module.exports = {
   env: process.env.NODE_ENV || 'development',
@@ -74,4 +83,11 @@ module.exports = {
     pass: process.env.EMAIL_PASS,
     from: process.env.EMAIL_FROM,
   },
+  minio: {
+    endpoint: process.env.MINIO_ENDPOINT,
+    accessKey: process.env.MINIO_ACCESS_KEY,
+    secretKey: process.env.MINIO_SECRET_KEY,
+    bucketName: process.env.MINIO_BUCKET_NAME || 'ptilms-uploads',
+    s3ForcePathStyle: process.env.MINIO_S3_FORCE_PATH_STYLE === 'true'
+  }
 };

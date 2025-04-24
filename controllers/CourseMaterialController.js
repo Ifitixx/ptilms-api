@@ -5,6 +5,7 @@ import {
     ValidationError,
 } from '../utils/errors.js';
 import validator from 'validator';
+import config from '../config/config.cjs';
 
 class CourseMaterialController {
     constructor({ courseMaterialService }) {
@@ -53,16 +54,33 @@ class CourseMaterialController {
 
     async createCourseMaterial(req, res, next) {
         try {
-            const { title, description, courseId } = req.body;
-            if (!title || !description || !courseId) {
-                throw new BadRequestError('Title, description, and courseId are required');
+            const { title, description, courseId, type } = req.body;
+            const fileData = req.body.fileData; // Get file data from the request
+
+            if (!title || !description || !courseId || !type) {
+                throw new BadRequestError('Title, description, courseId, and type are required');
             }
             // Validate courseId format
             if (!validator.isUUID(courseId)) {
                 throw new ValidationError([{ field: 'courseId', message: 'Invalid courseId format' }]);
             }
-            const courseMaterial = await this.courseMaterialService.createCourseMaterial(req.body);
-            res.status(201).json(courseMaterial);
+            // Validate fileData
+            if (!fileData || !fileData.fileName || !fileData.originalName) {
+                throw new BadRequestError('fileData with fileName and originalName are required');
+            }
+
+            const courseMaterial = await this.courseMaterialService.createCourseMaterial({
+                title,
+                description,
+                courseId,
+                type,
+                fileKey: fileData.fileName, // Store the fileKey
+                originalName: fileData.originalName, // Store the originalName
+            });
+            res.status(201).json({
+                ...courseMaterial.toJSON(),
+                url: `${config.minio.endpoint}/ptilms-uploads/${fileData.fileName}`
+            });
         } catch (error) {
             next(error);
         }

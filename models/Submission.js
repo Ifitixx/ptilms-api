@@ -30,9 +30,15 @@ export default (sequelize) => {
       type: DataTypes.TEXT,
       allowNull: true, // Allow null if submission is only a file
     },
-    submissionFileUrl: {
+    fileKey: { // Added fileKey
       type: DataTypes.STRING,
       allowNull: true, // Allow null if submission is only text
+      comment: 'Stores MinIO file key',
+    },
+    originalFilename: { // Added originalFilename
+      type: DataTypes.STRING,
+      allowNull: true, // Allow null if submission is only text
+      comment: 'Stores the original name of the uploaded file',
     },
     submittedAt: {
       type: DataTypes.DATE,

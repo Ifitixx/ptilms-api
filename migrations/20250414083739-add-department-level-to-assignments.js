@@ -1,3 +1,4 @@
+// ptilms-api/migrations/20250414083739-add-department-level-to-assignments.js
 'use strict';
 
 /** @type {import('sequelize-cli').Migration} */

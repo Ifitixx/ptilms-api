@@ -1,3 +1,4 @@
+// ptilms-api/compressionMiddleware.js
 import compression from 'compression';
 
 const shouldCompress = (req, res) => {

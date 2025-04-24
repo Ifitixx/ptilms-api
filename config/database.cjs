@@ -1,3 +1,4 @@
+// ptilms-api/config/database.cjs
 require('dotenv').config();
 
 module.exports = {

@@ -21,9 +21,15 @@ export default (sequelize) => {
       type: DataTypes.ENUM(...Object.values(COURSES_MATERIAL_TYPES)),
       allowNull: false,
     },
-    path: {
+    fileKey: { // Changed from path to fileKey
       type: DataTypes.STRING,
       allowNull: false,
+      comment: 'Stores MinIO file key',
+    },
+    originalName: { // Added originalName
+      type: DataTypes.STRING,
+      allowNull: false,
+      comment: 'Stores the original name of the uploaded file',
     },
     courseId: {
       type: DataTypes.UUID,

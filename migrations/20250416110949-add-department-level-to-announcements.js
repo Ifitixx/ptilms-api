@@ -1,3 +1,4 @@
+// ptilms-api/migrations/20250416110949-add-department-level-to-announcements.js
 import { DataTypes } from 'sequelize';
 
 export default {
